@@ -3,6 +3,8 @@ name = "simple-tauri-macros"
 version = "0.1.0"
 description = "compile-time json helpers for simple-tauri"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/svier0/simple-tauri"
 
 [lib]
 proc-macro = true
