@@ -1,7 +1,7 @@
 [package]
 name = "simple-tauri-macros"
 version = "0.1.0"
-description = "compile-time json helpers for simple-tauri"
+description = "compile-time JSON macros for simple-tauri: window list, tray menu, IPC commands, hooks, run"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/svier0/simple-tauri"
