@@ -162,18 +162,29 @@ pub fn set_tray_menu(input: TokenStream) -> TokenStream {
 /// 注册托盘生命周期钩子
 ///
 /// 格式: hooks!(on_tray_before, on_tray_after, on_quit)
-/// 三个位置对应三个钩子，缺省为 None（不注册）
+/// 三个位置对应三个钩子，缺省用 `_` 占位（不注册），如 hooks!(on_tray_before, _, on_quit)
 #[proc_macro]
 pub fn hooks(input: TokenStream) -> TokenStream {
-    let parser = syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated;
-    let paths: Vec<syn::Path> = syn::parse::Parser::parse(parser, input)
-        .expect("hooks!: 需要逗号分隔的函数名, 如 hooks!(on_tray_before, on_tray_after, on_quit)")
-        .into_iter()
-        .collect();
+    let tokens: Vec<proc_macro2::TokenTree> =
+        proc_macro2::TokenStream::from(input).into_iter().collect();
+    let mut paths: Vec<Option<syn::Path>> = Vec::new();
+    let mut current: Vec<proc_macro2::TokenTree> = Vec::new();
+    for tt in tokens {
+        if matches!(&tt, proc_macro2::TokenTree::Punct(p) if p.as_char() == ',') {
+            paths.push(parse_hook_arg(current));
+            current = Vec::new();
+        } else {
+            current.push(tt);
+        }
+    }
+    if !current.is_empty() {
+        paths.push(parse_hook_arg(current));
+    }
 
     let hook = |i: usize| {
         paths
             .get(i)
+            .and_then(|p| p.as_ref())
             .map(|p| {
                 quote!(
                     Some(#p as fn() -> ::std::result::Result<(), ::std::string::String>)
@@ -191,6 +202,21 @@ pub fn hooks(input: TokenStream) -> TokenStream {
         );
     };
     expanded.into()
+}
+
+fn parse_hook_arg(tts: Vec<proc_macro2::TokenTree>) -> Option<syn::Path> {
+    let is_underscore = matches!(
+        tts.as_slice(),
+        [proc_macro2::TokenTree::Ident(i)] if i == "_"
+    );
+    if is_underscore {
+        return None;
+    }
+    let stream: proc_macro2::TokenStream = tts.into_iter().collect();
+    Some(
+        syn::parse2::<syn::Path>(stream)
+            .expect("hooks!: 需要函数名或下划线占位符 _"),
+    )
 }
 
 /// 启动应用：等价 simple_tray::run(tauri::generate_context!())
