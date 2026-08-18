@@ -18,6 +18,49 @@ static SHUTDOWN: AtomicBool = AtomicBool::new(false);
 #[cfg(not(windows))]
 static RESOURCE_DIR: OnceLock<PathBuf> = OnceLock::new();
 
+/// Job Object 句柄（windows）：KILL_ON_JOB_CLOSE 下父进程退出时内核自动终止全部绑定进程
+/// 以 usize 存储句柄整数值，避免 HANDLE(*mut) 的 Send/Sync 限制
+#[cfg(windows)]
+static JOB_HANDLE: OnceLock<usize> = OnceLock::new();
+
+#[cfg(windows)]
+use windows_sys::Win32::Foundation::HANDLE;
+#[cfg(windows)]
+use windows_sys::Win32::System::JobObjects::{
+    AssignProcessToJobObject, CreateJobObjectW, SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+};
+
+/// 获取全局 Job Object 句柄（懒创建）
+/// KILL_ON_JOB_CLOSE：句柄关闭时内核终止作业内所有进程。
+/// 句柄不主动关闭，随进程退出被内核回收，从而覆盖强杀/崩溃场景。
+#[cfg(windows)]
+fn job_object() -> HANDLE {
+    if let Some(h) = JOB_HANDLE.get() {
+        return *h as HANDLE;
+    }
+    let name = windows_sys::core::w!("dsh-job-object");
+    let handle = unsafe { CreateJobObjectW(std::ptr::null(), name) };
+    if handle.is_null() {
+        return std::ptr::null_mut();
+    }
+    let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { std::mem::zeroed() };
+    info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    let ok = unsafe {
+        SetInformationJobObject(
+            handle,
+            windows_sys::Win32::System::JobObjects::JobObjectExtendedLimitInformation,
+            &info as *const _ as *const core::ffi::c_void,
+            std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+        )
+    };
+    if ok == 0 {
+        return std::ptr::null_mut();
+    }
+    let _ = JOB_HANDLE.set(handle as usize);
+    handle
+}
+
 /// 缓存应用资源目录（启动时由 simple_tray 调用一次）
 /// windows 下不缓存（按 exe 目录解析），非 windows 缓存 resource_dir
 pub fn init() {
@@ -34,6 +77,8 @@ pub fn init() {
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
+#[cfg(windows)]
+use std::os::windows::io::AsRawHandle;
 
 /// 隐藏新进程的 cmd 黑窗（CREATE_NO_WINDOW）
 #[cfg(windows)]
@@ -88,11 +133,21 @@ pub fn start(work_dir: &str, exec_cmd: &str) -> std::io::Result<()> {
 #[cfg(windows)]
 fn spawn_in_dir(dir: &Path, exec_cmd: &str) -> std::io::Result<Child> {
     // 隐藏控制台弹框
-    Command::new("cmd")
-        .args(["/C", exec_cmd])
+    let mut cmd = Command::new("cmd");
+    cmd.args(["/C", exec_cmd])
         .current_dir(dir)
-        .creation_flags(CREATE_NO_WINDOW)
-        .spawn()
+        .creation_flags(CREATE_NO_WINDOW);
+    let child = cmd.spawn()?;
+
+    // 绑定到 Job Object：进程无法二次绑定已绑定的 job，先探测当前 job（如果已绑定则跳过）
+    let handle = job_object();
+    if !handle.is_null() {
+        let proc_handle = child.as_raw_handle() as HANDLE;
+        unsafe {
+            let _ = AssignProcessToJobObject(handle, proc_handle);
+        }
+    }
+    Ok(child)
 }
 
 #[cfg(not(windows))]

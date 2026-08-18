@@ -205,6 +205,7 @@ pub use simple_tauri_macros::set_window_list;
 pub use simple_tauri_macros::set_ipc_cmds;
 pub use simple_tauri_macros::set_tray_menu;
 pub use simple_tauri_macros::hooks;
+pub use simple_tauri_macros::mutex;
 pub use simple_tauri_macros::run;
 
 /// 注册托盘生命周期钩子（编译期宏 hooks! 生成后调用此函数）

@@ -94,13 +94,114 @@ pub fn set_window_list(input: TokenStream) -> TokenStream {
 }
 
 /// 把前端 IPC 命令列表转发给 tauri::generate_handler!，注册到托盘运行器
+/// 用法:
+/// - set_ipc_cmds!() 无参：编译期自动扫描调用方 crate 的 src/lib.rs 顶层，
+///   收集所有 #[tauri::command] 函数并注册（没有则注册空 handler）
+/// - set_ipc_cmds!("ipc") / set_ipc_cmds!(["lib", "ipc"]) / set_ipc_cmds!(lib, ipc)：
+///   扫描指定一个或多个模块，收集所有 #[tauri::command] 函数并注册
+/// - set_ipc_cmds![a, b] 手动列出函数路径
 #[proc_macro]
 pub fn set_ipc_cmds(input: TokenStream) -> TokenStream {
     let input = proc_macro2::TokenStream::from(input);
-    let expanded = quote! {
-        ::simple_tauri::simple_tray::set_ipc_cmds(tauri::generate_handler![#input]);
+
+    // 空输入 => 默认扫 lib
+    let modules: Vec<String> = if input.is_empty() {
+        vec!["lib".to_string()]
+    } else {
+        // 按逗号拆成若干项
+        let mut groups: Vec<Vec<proc_macro2::TokenTree>> = Vec::new();
+        let mut cur: Vec<proc_macro2::TokenTree> = Vec::new();
+        for tt in input.clone() {
+            if matches!(&tt, proc_macro2::TokenTree::Punct(p) if p.as_char() == ',') {
+                groups.push(cur);
+                cur = Vec::new();
+            } else {
+                cur.push(tt);
+            }
+        }
+        if !cur.is_empty() {
+            groups.push(cur);
+        }
+
+        // 每项若是单个字符串字面量或标识符 => 视为模块名；否则手动列表
+        let mut mods = Vec::new();
+        let mut manual = false;
+        for g in &groups {
+            match g.as_slice() {
+                [proc_macro2::TokenTree::Literal(l)] => {
+                    if let Ok(lit) = syn::parse2::<LitStr>(quote!(#l)) {
+                        mods.push(lit.value());
+                    } else {
+                        manual = true;
+                    }
+                }
+                [proc_macro2::TokenTree::Ident(i)] => mods.push(i.to_string()),
+                _ => manual = true,
+            }
+        }
+        if manual {
+            let expanded = quote! {
+                ::simple_tauri::simple_tray::set_ipc_cmds(tauri::generate_handler![#input]);
+            };
+            return expanded.into();
+        }
+        mods
     };
-    expanded.into()
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
+        .expect("set_ipc_cmds!: CARGO_MANIFEST_DIR 未设置");
+
+    let mut all_paths: Vec<proc_macro2::TokenStream> = Vec::new();
+    for module in &modules {
+        let ipc_path = std::path::Path::new(&manifest_dir)
+            .join("src")
+            .join(format!("{module}.rs"));
+        let src = std::fs::read_to_string(&ipc_path).unwrap_or_else(|e| {
+            panic!("set_ipc_cmds!: 读取 {ipc_path:?} 失败: {e}")
+        });
+
+        let file: syn::File = syn::parse_file(&src)
+            .unwrap_or_else(|e| panic!("set_ipc_cmds!: {module}.rs 解析失败: {e}"));
+        let mut names = Vec::new();
+        for item in &file.items {
+            if let syn::Item::Fn(f) = item {
+                let is_cmd = f.attrs.iter().any(|a| {
+                    a.path()
+                        .segments
+                        .last()
+                        .map(|s| s.ident == "command")
+                        .unwrap_or(false)
+                });
+                if is_cmd {
+                    names.push(f.sig.ident.clone());
+                }
+            }
+        }
+
+        let module_ident =
+            syn::Ident::new(&module.replace('-', "_"), proc_macro2::Span::call_site());
+        for n in names {
+            if module == "lib" {
+                all_paths.push(quote!(#n));
+            } else {
+                let module = module_ident.clone();
+                all_paths.push(quote!(#module::#n));
+            }
+        }
+    }
+
+    // 扫描不到任何 command 时注册空 handler，等价于没有 IPC 命令
+    if all_paths.is_empty() {
+        return quote! {
+            ::simple_tauri::simple_tray::set_ipc_cmds(|_| false);
+        }
+        .into();
+    }
+
+    quote! {
+        ::simple_tauri::simple_tray::set_ipc_cmds(tauri::generate_handler![#(#all_paths),*]);
+    }
+    .into()
 }
 
 /// 编译期解析 JSON 托盘菜单，生成静态菜单数组
@@ -217,6 +318,35 @@ fn parse_hook_arg(tts: Vec<proc_macro2::TokenTree>) -> Option<syn::Path> {
         syn::parse2::<syn::Path>(stream)
             .expect("hooks!: 需要函数名或下划线占位符 _"),
     )
+}
+
+/// 单实例互斥体检查（Windows），已有实例运行时 `return` 退出
+/// 不传参时自动用当前 crate 包名（CARGO_PKG_NAME），也可显式传字符串字面量，如 mutex!("dsh")
+/// 用法: mutex!() 或 mutex!("dsh")，应放在启动代码最前
+#[proc_macro]
+pub fn mutex(input: TokenStream) -> TokenStream {
+    let name = if input.is_empty() {
+        None
+    } else {
+        let lit = parse_macro_input!(input as LitStr);
+        Some(Literal::string(&lit.value()))
+    };
+
+    match &name {
+        Some(name) => quote! {
+            #[cfg(windows)]
+            if ::simple_tauri::check_mutex(#name) {
+                return;
+            }
+        },
+        None => quote! {
+            #[cfg(windows)]
+            if ::simple_tauri::check_mutex(::std::env!("CARGO_PKG_NAME")) {
+                return;
+            }
+        },
+    }
+    .into()
 }
 
 /// 启动应用：等价 simple_tray::run(tauri::generate_context!())
