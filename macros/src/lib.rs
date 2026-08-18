@@ -76,7 +76,7 @@ pub fn set_window_list(input: TokenStream) -> TokenStream {
         let url = Literal::string(&url);
 
         items.push(quote! {
-            ::simple_tauri_lib::simple_tray::WindowConfig {
+            ::simple_tauri::simple_tray::WindowConfig {
                 id: #id,
                 title: #title,
                 url: #url,
@@ -88,7 +88,7 @@ pub fn set_window_list(input: TokenStream) -> TokenStream {
     }
 
     let expanded = quote! {
-        ::simple_tauri_lib::simple_tray::set_window_list(&[#(#items),*]);
+        ::simple_tauri::simple_tray::set_window_list(&[#(#items),*]);
     };
     expanded.into()
 }
@@ -98,7 +98,7 @@ pub fn set_window_list(input: TokenStream) -> TokenStream {
 pub fn set_ipc_cmds(input: TokenStream) -> TokenStream {
     let input = proc_macro2::TokenStream::from(input);
     let expanded = quote! {
-        ::simple_tauri_lib::simple_tray::set_ipc_cmds(tauri::generate_handler![#input]);
+        ::simple_tauri::simple_tray::set_ipc_cmds(tauri::generate_handler![#input]);
     };
     expanded.into()
 }
@@ -154,7 +154,7 @@ pub fn set_tray_menu(input: TokenStream) -> TokenStream {
     }
 
     let expanded = quote! {
-        ::simple_tauri_lib::simple_tray::set_tray_menu(&[#(#items),*]);
+        ::simple_tauri::simple_tray::set_tray_menu(&[#(#items),*]);
     };
     expanded.into()
 }
@@ -197,7 +197,7 @@ pub fn hooks(input: TokenStream) -> TokenStream {
     let quit = hook(2);
 
     let expanded = quote! {
-        ::simple_tauri_lib::simple_tray::set_hooks(
+        ::simple_tauri::simple_tray::set_hooks(
             #before, #after, #quit,
         );
     };
@@ -227,7 +227,7 @@ pub fn run(input: TokenStream) -> TokenStream {
         panic!("run!: 不接受任何参数, 直接写 run!()");
     }
     quote! {
-        ::simple_tauri_lib::simple_tray::run(::tauri::generate_context!());
+        ::simple_tauri::simple_tray::run(::tauri::generate_context!());
     }
     .into()
 }
