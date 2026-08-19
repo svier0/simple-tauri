@@ -1,0 +1,49 @@
+/// 查询 npm 包的最新版本号，失败返回空字符串
+pub fn get_npm_latest_ver(pkgname: &str) -> String {
+    let url = format!("https://registry.npmjs.org/{}", pkgname.replace('/', "%2F"));
+    let body = match ureq::get(&url).call() {
+        Ok(resp) => match resp.into_string() {
+            Ok(s) => s,
+            Err(_) => return String::new(),
+        },
+        Err(_) => return String::new(),
+    };
+    serde_json::from_str::<serde_json::Value>(&body)
+        .ok()
+        .and_then(|v| v["dist-tags"]["latest"].as_str().map(|s| s.to_string()))
+        .unwrap_or_default()
+}
+
+/// 查询 github release 的最新正式版本号，失败返回空字符串
+pub fn get_gh_latest_ver(gitrepo: &str) -> String {
+    let url = format!("https://api.github.com/repos/{gitrepo}/releases/latest");
+    let body = match ureq::get(&url).call() {
+        Ok(resp) => match resp.into_string() {
+            Ok(s) => s,
+            Err(_) => return String::new(),
+        },
+        Err(_) => return String::new(),
+    };
+    let ver = serde_json::from_str::<serde_json::Value>(&body)
+        .ok()
+        .and_then(|v| v["tag_name"].as_str().map(|s| s.to_string()))
+        .unwrap_or_default();
+    ver.trim_start_matches('v').to_string()
+}
+
+/// 查询 github release 的最新预览版本号，失败返回空字符串
+pub fn get_gh_preview_ver(gitrepo: &str) -> String {
+    let url = format!("https://api.github.com/repos/{gitrepo}/releases");
+    let body = match ureq::get(&url).call() {
+        Ok(resp) => match resp.into_string() {
+            Ok(s) => s,
+            Err(_) => return String::new(),
+        },
+        Err(_) => return String::new(),
+    };
+    let ver = serde_json::from_str::<serde_json::Value>(&body)
+        .ok()
+        .and_then(|v| v[0]["tag_name"].as_str().map(|s| s.to_string()))
+        .unwrap_or_default();
+    ver.trim_start_matches('v').to_string()
+}

@@ -1,5 +1,6 @@
 pub mod simple_serve;
 pub mod simple_tray;
+pub mod utils;
 
 #[cfg(windows)]
 pub fn check_mutex(name: &str) -> bool {
