@@ -27,6 +27,33 @@ pub fn app() -> Option<&'static tauri::AppHandle> {
     APP.get()
 }
 
+/// 返回资源目录绝对路径（windows：exe 所在目录，非 windows：app 资源目录）
+/// sub 非空时拼接子路径返回
+pub fn resource_dir(sub: &str) -> std::path::PathBuf {
+    use std::sync::OnceLock;
+    static BASE: OnceLock<std::path::PathBuf> = OnceLock::new();
+    let base = BASE.get_or_init(|| {
+        #[cfg(windows)]
+        {
+            std::env::current_exe()
+                .ok()
+                .and_then(|exe| exe.parent().map(|d| d.to_path_buf()))
+                .unwrap_or_else(|| std::path::PathBuf::from("."))
+        }
+        #[cfg(not(windows))]
+        {
+            app()
+                .and_then(|a| a.path().resource_dir().ok())
+                .unwrap_or_else(|| std::path::PathBuf::from("."))
+        }
+    });
+    if sub.is_empty() {
+        base.clone()
+    } else {
+        base.join(sub)
+    }
+}
+
 /// 判断当前是否主线程（setup 在 run 开始时记录）
 fn is_main_thread() -> bool {
     match MAIN_THREAD_ID.get() {
@@ -56,7 +83,6 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
         .setup(move |app| {
             let _ = MAIN_THREAD_ID.set(std::thread::current().id());
             let _ = APP.set(app.handle().clone());
-            crate::simple_serve::init();
             let handle = app.handle().clone();
 
             // hook（含 wait_port 阻塞）放后台线程，成功后再调度回主线程建托盘

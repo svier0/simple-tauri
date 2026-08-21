@@ -1,3 +1,14 @@
+
+/// 查询最新版本号
+pub fn get_latest_ver(pkgtype: &str,pkgname: &str) -> String {
+    match pkgtype {
+        "npm" => get_npm_latest_ver(pkgname),
+        "github" => get_gh_latest_ver(pkgname),
+        "github-preview" => get_gh_preview_ver(pkgname),
+        _ => panic!("未知类型: {}", pkgtype),
+    }
+}
+
 /// 查询 npm 包的最新版本号，失败返回空字符串
 pub fn get_npm_latest_ver(pkgname: &str) -> String {
     let url = format!("https://registry.npmjs.org/{}", pkgname.replace('/', "%2F"));
@@ -47,3 +58,4 @@ pub fn get_gh_preview_ver(gitrepo: &str) -> String {
         .unwrap_or_default();
     ver.trim_start_matches('v').to_string()
 }
+
