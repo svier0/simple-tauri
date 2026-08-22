@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::fs;
+use url::Url;
 
 /// 下载文件
 pub fn wget(url: &str) -> Result<(), String> {
@@ -12,6 +13,7 @@ pub fn wget(url: &str) -> Result<(), String> {
 }
 
 /// 下载文件 指定保存文件名
+#[allow(non_snake_case)]
 pub fn wget_O(fname: &str,url: &str) -> Result<(), String> {
     let p = Path::new(fname);
     let tmp_file = if p.is_absolute() {
@@ -21,7 +23,7 @@ pub fn wget_O(fname: &str,url: &str) -> Result<(), String> {
         tmp_dir.join(fname)
     };
 
-    let response = reqwest::blocking::get(&url)
+    let response = reqwest::blocking::get(url)
         .map_err(|e| format!("下载失败: {}", e))?;
     if !response.status().is_success() {
         return Err(format!("HTTP {}: {}", response.status(), response.text().unwrap_or_default()));
@@ -29,10 +31,9 @@ pub fn wget_O(fname: &str,url: &str) -> Result<(), String> {
 
     let mut file = fs::File::create(&tmp_file)
         .map_err(|e| format!("创建临时文件失败: {}", e))?;
-    let mut stream = response
-        .bytes_stream()
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
-    std::io::copy(&mut stream, &mut file)
+    let bytes = response.bytes()
+        .map_err(|e| format!("读取响应失败: {}", e))?;
+    std::io::copy(&mut bytes.as_ref(), &mut file)
         .map_err(|e| format!("写入失败: {}", e))?;
     Ok(())
 }

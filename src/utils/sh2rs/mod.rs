@@ -9,35 +9,43 @@ pub use rm::*;
 pub use unzip::*;
 
 pub fn sh2rs(cmd: &str) -> Result<(), String> {
-	let trimmed = cmd.trim();
+    let trimmed = cmd.trim();
     let parts: Vec<&str> = trimmed.split_whitespace().collect();
 
     if parts.is_empty() {
         return Err(format!("unsupported command: {cmd}"));
     }
     match parts[0] {
-        "wget"  => {
-        	if parts[1]=="-O" {
-        		wget_O(&parts[2],&parts[3..])
-        	}else{
-        		wget(&parts[1..])
-        	}
+        "wget" => {
+            if parts.get(1) == Some(&"-O") {
+                wget_O(parts[2], &parts[3..].join(" "))
+            } else {
+                wget(&parts[1..].join(" "))
+            }
         }
         "mkdir" => {
-        	if parts[1]=="-p" {
-        		mkdir_p(&parts[2..])
-        	}else{
-        		mkdir(&parts[1..])
-        	}
+            if parts.get(1) == Some(&"-p") {
+                mkdir_p(&parts[2..].join(" "))
+            } else {
+                mkdir(&parts[1..].join(" "))
+            }
         }
-        "rm"    => {
-        	if parts[1]=="-rf" {
-        		rm_r(&parts[2..])
-        	}else{
-        		rm(&parts[1..]),
-        	}
+        "rm" => {
+            if parts.get(1) == Some(&"-rf") {
+                rm_r(&parts[2..].join(" "))
+            } else {
+                rm(&parts[1..].join(" "))
+            }
         }
-        "unzip" => unzip(&parts[1..]),
+        "unzip" => {
+            if parts.len() >= 4 {
+                unzip(parts[1], parts[2], parts[3])
+            } else if parts.len() == 3 {
+                unzip(parts[1], parts[2], "")
+            } else {
+                Err("用法: unzip <file> <dir> [extract_dir]".into())
+            }
+        }
         _ => Err(format!("unsupported command: {}", parts[0])),
     }
 }

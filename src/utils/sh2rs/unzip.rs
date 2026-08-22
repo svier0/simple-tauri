@@ -1,3 +1,5 @@
+use std::fs;
+use std::path::Path;
 
 /// 解压zip文件 至指定目录 (可选提取目录，默认提取全部)
 pub fn unzip(zipfile: &str,dir: &str,extract_dir: &str) -> Result<(), String> {
@@ -6,13 +8,15 @@ pub fn unzip(zipfile: &str,dir: &str,extract_dir: &str) -> Result<(), String> {
     let mut archive = zip::ZipArchive::new(zip_file)
         .map_err(|e| format!("读取 zip 失败: {}", e))?;
 
-	if !extract_dir.is_empty() {
-        extract_dir = extract_dir
+    let extract_dir = if !extract_dir.is_empty() {
+        let cleaned = extract_dir
             .trim_start_matches('/')
             .trim_end_matches('/')
             .to_string();
-        extract_dir = format!("{}/", extract_dir);
-    }
+        format!("{}/", cleaned)
+    } else {
+        String::new()
+    };
 
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i)
@@ -31,7 +35,7 @@ pub fn unzip(zipfile: &str,dir: &str,extract_dir: &str) -> Result<(), String> {
 
         let out_path = Path::new(dir).join(relative);
 
-        if name.endswith('/') {
+        if name.ends_with('/') {
             fs::create_dir_all(&out_path)
                 .map_err(|e| format!("创建目录 {} 失败: {}", name, e))?;
         } else {
