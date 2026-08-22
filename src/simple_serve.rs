@@ -229,7 +229,10 @@ pub fn check_local_ver() -> String {
     };
     // 2. 绝对路径取父目录
     let parent = abs.parent().unwrap_or(Path::new("/"));
-    // 3. 遍历父目录下所有目录，寻找符合 rule 格式的
+    if !parent.exists() {
+        return String::new();
+    }
+    // 3. ver 格式
     let fname = match p.file_name().and_then(|n| n.to_str()) {
         Some(f) => f,
         None => return String::new(),
@@ -240,6 +243,7 @@ pub fn check_local_ver() -> String {
     };
     let prefix = &fname[..ver_pos];
     let suffix = &fname[ver_pos + 5..];
+    // 4. 遍历父目录下所有目录，寻找符合 rule 格式的
     let entries = match std::fs::read_dir(parent) {
         Ok(e) => e,
         Err(_) => return String::new(),
