@@ -63,3 +63,9 @@ pub fn mutex(input: TokenStream) -> TokenStream {
 pub fn run(input: TokenStream) -> TokenStream {
     simple_tray::run_impl(input)
 }
+
+/// 简化 start 调用：start!("run.bat") 或 start!("run_{}.bat", ver)
+#[proc_macro]
+pub fn start(input: TokenStream) -> TokenStream {
+    simple_serve::start_impl(input)
+}
