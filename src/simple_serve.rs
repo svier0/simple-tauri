@@ -90,11 +90,14 @@ pub fn get_local_ver() -> String {
     LOCAL_VER.lock().unwrap().clone().unwrap_or_default()
 }
 
-/// 解析实际工作目录：work_dir.replace("<ver>", local_ver)
-fn resolved_work_dir() -> Option<String> {
+/// 获取工作目录的绝对路径
+/// work_dir.replace("<ver>", ver)，ver 为 None 时使用 LOCAL_VER
+pub fn get_work_dir(ver: Option<&str>) -> Option<std::path::PathBuf> {
     let rule = WORK_DIR.get()?;
-    let ver = LOCAL_VER.lock().unwrap().clone().unwrap_or_default();
-    Some(rule.replace("<ver>", &ver))
+    let v = ver.map(|s| s.to_string())
+        .or_else(|| LOCAL_VER.lock().unwrap().clone())
+        .unwrap_or_default();
+    Some(crate::simple_tray::resource_dir(&rule.replace("<ver>", &v)))
 }
 
 /// 启动服务器进程（挂起，不阻塞）
@@ -103,9 +106,8 @@ pub fn start(exec_cmd: &str) -> std::io::Result<()> {
     stop();
     SHUTDOWN.store(false, Ordering::SeqCst);
 
-    let work_dir = resolved_work_dir()
+    let dir = get_work_dir(None)
         .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "未调用 set_work_dir"))?;
-    let dir = crate::simple_tray::resource_dir(&work_dir);
     let proc = spawn_in_dir(&dir, exec_cmd)?;
 
     *child().lock().unwrap() = Some(proc);
