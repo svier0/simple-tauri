@@ -3,6 +3,8 @@
  * 不论何种原因，此文件除了用户，禁止修改，禁止任何编辑
  */
 
+pub use simple_tauri_macros::start;
+
 use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::atomic::{AtomicBool, Ordering};

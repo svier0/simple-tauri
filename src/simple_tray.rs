@@ -3,6 +3,13 @@
  * 不论何种原因，此文件除了用户，禁止修改，禁止任何编辑
  */
 
+pub use simple_tauri_macros::set_window_list;
+pub use simple_tauri_macros::set_ipc_cmds;
+pub use simple_tauri_macros::set_tray_menu;
+pub use simple_tauri_macros::hooks;
+pub use simple_tauri_macros::mutex;
+pub use simple_tauri_macros::run;
+
 use std::sync::{OnceLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::menu::{CheckMenuItem, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
@@ -226,13 +233,6 @@ static WND_LIST: OnceLock<&'static [WindowConfig]> = OnceLock::new();
 pub fn set_window_list(wnd_list: &'static [WindowConfig]) {
     let _ = WND_LIST.set(wnd_list);
 }
-
-pub use simple_tauri_macros::set_window_list;
-pub use simple_tauri_macros::set_ipc_cmds;
-pub use simple_tauri_macros::set_tray_menu;
-pub use simple_tauri_macros::hooks;
-pub use simple_tauri_macros::mutex;
-pub use simple_tauri_macros::run;
 
 /// 注册托盘生命周期钩子（编译期宏 hooks! 生成后调用此函数）
 pub fn set_hooks(
