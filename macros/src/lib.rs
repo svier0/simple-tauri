@@ -3,6 +3,7 @@ use proc_macro::TokenStream;
 mod simple_tray;
 mod simple_serve;
 mod mod_;
+mod utils;
 
 /// 编译期解析 JSON 窗口列表，生成静态 WindowConfig 数组
 ///
@@ -68,4 +69,10 @@ pub fn run(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn start(input: TokenStream) -> TokenStream {
     simple_serve::start_impl(input)
+}
+
+/// 简化 sh2rs 调用：sh2rs!("wget url") 或 sh2rs!("wget -O {} {}", fname, url)
+#[proc_macro]
+pub fn sh2rs(input: TokenStream) -> TokenStream {
+    utils::sh2rs_impl(input)
 }
