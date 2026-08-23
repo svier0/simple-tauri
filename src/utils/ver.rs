@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 /// 所有 https 请求共用一个 agent：只加密，不校验对端证书（接受任何证书）
-fn https_agent() -> ureq::Agent {
+pub(crate) fn https_agent() -> ureq::Agent {
     let connector = native_tls::TlsConnector::builder()
         .danger_accept_invalid_certs(true)
         .build()
