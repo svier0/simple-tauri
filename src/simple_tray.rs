@@ -351,11 +351,16 @@ fn fatal(app: &tauri::AppHandle, msg: &str) -> ! {
         .encode_wide()
         .chain(Some(0))
         .collect();
+    let title: String = app.config().product_name.clone().unwrap_or_default();
+    let title_wide: Vec<u16> = std::ffi::OsStr::new(&title)
+        .encode_wide()
+        .chain(Some(0))
+        .collect();
     unsafe {
         windows_sys::Win32::UI::WindowsAndMessaging::MessageBoxW(
             std::ptr::null_mut(),
             wide.as_ptr(),
-            windows_sys::core::w!("dsh"),
+            title_wide.as_ptr(),
             0x10, // MB_ICONERROR
         )
     };

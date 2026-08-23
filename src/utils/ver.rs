@@ -12,7 +12,10 @@ pub fn get_latest_ver(pkgtype: &str,pkgname: &str) -> String {
 /// 查询 npm 包的最新版本号，失败返回空字符串
 pub fn get_npm_latest_ver(pkgname: &str) -> String {
     let url = format!("https://registry.npmjs.org/{}", pkgname.replace('/', "%2F"));
-    let body = match ureq::get(&url).call() {
+    let body = match ureq::get(&url)
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/161.0.0.0 Safari/537.36")
+        .call()
+    {
         Ok(resp) => match resp.into_string() {
             Ok(s) => s,
             Err(_) => return String::new(),
@@ -28,7 +31,10 @@ pub fn get_npm_latest_ver(pkgname: &str) -> String {
 /// 查询 github release 的最新正式版本号，失败返回空字符串
 pub fn get_gh_latest_ver(gitrepo: &str) -> String {
     let url = format!("https://api.github.com/repos/{gitrepo}/releases/latest");
-    let body = match ureq::get(&url).call() {
+    let body = match ureq::get(&url)
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/161.0.0.0 Safari/537.36")
+        .call()
+    {
         Ok(resp) => match resp.into_string() {
             Ok(s) => s,
             Err(_) => return String::new(),
@@ -45,7 +51,10 @@ pub fn get_gh_latest_ver(gitrepo: &str) -> String {
 /// 查询 github release 的最新预览版本号，失败返回空字符串
 pub fn get_gh_preview_ver(gitrepo: &str) -> String {
     let url = format!("https://api.github.com/repos/{gitrepo}/releases");
-    let body = match ureq::get(&url).call() {
+    let body = match ureq::get(&url)
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/161.0.0.0 Safari/537.36")
+        .call()
+    {
         Ok(resp) => match resp.into_string() {
             Ok(s) => s,
             Err(_) => return String::new(),
@@ -58,4 +67,3 @@ pub fn get_gh_preview_ver(gitrepo: &str) -> String {
         .unwrap_or_default();
     ver.trim_start_matches('v').to_string()
 }
-

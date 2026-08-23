@@ -51,8 +51,8 @@ pub fn hooks(input: TokenStream) -> TokenStream {
 }
 
 /// 单实例互斥体检查（Windows），已有实例运行时 `return` 退出
-/// 不传参时自动用当前 crate 包名（CARGO_PKG_NAME），也可显式传字符串字面量，如 mutex!("dsh")
-/// 用法: mutex!() 或 mutex!("dsh")，应放在启动代码最前
+/// 不传参时自动用当前 crate 包名（CARGO_PKG_NAME），也可显式传字符串字面量，如 mutex!("myapp")
+/// 用法: mutex!() 或 mutex!("myapp")，应放在启动代码最前
 #[proc_macro]
 pub fn mutex(input: TokenStream) -> TokenStream {
     mod_::mutex_impl(input)

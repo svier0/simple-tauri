@@ -42,8 +42,7 @@ fn job_object() -> HANDLE {
     if let Some(h) = JOB_HANDLE.get() {
         return *h as HANDLE;
     }
-    let name = windows_sys::core::w!("dsh-job-object");
-    let handle = unsafe { CreateJobObjectW(std::ptr::null(), name) };
+    let handle = unsafe { CreateJobObjectW(std::ptr::null(), std::ptr::null()) };
     if handle.is_null() {
         return std::ptr::null_mut();
     }
