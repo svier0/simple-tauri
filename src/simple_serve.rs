@@ -91,14 +91,19 @@ pub fn get_local_ver() -> String {
     LOCAL_VER.lock().unwrap().clone().unwrap_or_default()
 }
 
-/// 获取工作目录的绝对路径
+/// 获取工作目录的绝对路径（String）
 /// work_dir.replace("<ver>", ver)，ver 为 None 时使用 LOCAL_VER
-pub fn get_work_dir(ver: Option<&str>) -> Option<std::path::PathBuf> {
-    let rule = WORK_DIR.get()?;
+/// 读取全局 WORK_DIR（由 set_work_dir 设置）；未调用 set_work_dir 会直接 panic 报错
+pub fn get_work_dir(ver: Option<&str>) -> String {
+    let rule = WORK_DIR
+        .get()
+        .expect("set_work_dir 必须先于 get_work_dir 调用");
     let v = ver.map(|s| s.to_string())
         .or_else(|| LOCAL_VER.lock().unwrap().clone())
         .unwrap_or_default();
-    Some(crate::simple_tray::resource_dir(&rule.replace("<ver>", &v)))
+    crate::simple_tray::resource_dir(&rule.replace("<ver>", &v))
+        .to_string_lossy()
+        .into_owned()
 }
 
 /// 启动服务器进程（挂起，不阻塞）
@@ -107,9 +112,8 @@ pub fn start(exec_cmd: &str) -> std::io::Result<()> {
     stop();
     SHUTDOWN.store(false, Ordering::SeqCst);
 
-    let dir = get_work_dir(None)
-        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "未调用 set_work_dir"))?;
-    let proc = spawn_in_dir(&dir, exec_cmd)?;
+    let dir = get_work_dir(None);
+    let proc = spawn_in_dir(Path::new(&dir), exec_cmd)?;
 
     *child().lock().unwrap() = Some(proc);
     let _ = LAST_ARGS.set(exec_cmd.to_string());
