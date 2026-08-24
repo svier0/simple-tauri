@@ -47,7 +47,7 @@ pub fn set_ensure_server(ensure_server: fn(&str,&str) -> String){
 fn ensure_server_default(ver: &str,dir: &str) -> Result<(), String> {
     let url = UPDATE_URL.get().unwrap()(ver);
     let extract_dir = EXTRACT_DIR.get().unwrap();
-    simple_tauri::utils::unzip_remote(&url,dir,extract_dir)?;
+    simple_tauri::utils::unzip_remote(&url,dir,&extract_dir)?;
     Ok(())
 }
 
