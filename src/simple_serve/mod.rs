@@ -3,7 +3,7 @@
  * 不论何种原因，此文件除了用户，禁止修改，禁止任何编辑
  */
 
-pub use simple_tauri_macros::start;
+pub use simple_tauri_macros::set_start_cmd;
 
 mod work_dir;
 mod local_ver;

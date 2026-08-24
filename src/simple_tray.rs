@@ -204,9 +204,9 @@ fn create_tray(app: &tauri::AppHandle) {
             "show" => show_window("main"),
             "toggle" => {
                 if crate::simple_serve::is_running() {
-                    crate::simple_server::stop();
+                    crate::simple_serve::stop();
                 } else {
-                    crate::simple_server::restart();
+                    crate::simple_serve::restart();
                 }
             }
             "light" => {

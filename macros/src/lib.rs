@@ -65,10 +65,10 @@ pub fn run(input: TokenStream) -> TokenStream {
     simple_tray::run_impl(input)
 }
 
-/// 简化 start 调用：start!("run.bat") 或 start!("run_{}.bat", ver)
+/// 简化 set_start_cmd 调用：set_start_cmd!("run.bat") 或 set_start_cmd!("run_{}.bat", ver)
 #[proc_macro]
-pub fn start(input: TokenStream) -> TokenStream {
-    simple_serve::start_impl(input)
+pub fn set_start_cmd(input: TokenStream) -> TokenStream {
+    simple_serve::set_start_cmd_impl(input)
 }
 
 /// 简化 sh2rs 调用：sh2rs!("wget url") 或 sh2rs!("wget -O {} {}", fname, url)

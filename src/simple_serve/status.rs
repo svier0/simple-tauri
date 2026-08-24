@@ -8,7 +8,7 @@ static RUNNING: AtomicBool = AtomicBool::new(false);
 
 /// 返回当前服务运行状态
 pub fn is_running() -> bool {
-	RUNNING.load(Ordering::SeqCst);
+	RUNNING.load(Ordering::SeqCst)
 }
 
 /// 设置当前服务运行状态
