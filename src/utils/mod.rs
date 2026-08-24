@@ -30,3 +30,17 @@ pub fn unzip_remote(zipurl: &str, dir: &str, extract_dir: &str) -> Result<(), St
     // ---------- 删除临时文件 ----------
     sh2rs!("rm {}", tmp_file.display())
 }
+
+/// 相对路径转绝对路径
+/// @param path &str 相对路径
+/// @param root PathBuf 相对路径的起始目录
+/// @return Pathbuf 返回绝对路径
+pub fn path_rel2abs(path: &str,root: std::path::PathBuf) -> std::path::PathBuf {
+    let p = std::path::Path::new(&path);
+    let abs = if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        root.join(&path)
+    };
+    abs
+}

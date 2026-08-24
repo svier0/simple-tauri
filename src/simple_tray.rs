@@ -12,7 +12,7 @@ pub use simple_tauri_macros::run;
 
 use std::sync::{OnceLock};
 use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::menu::{CheckMenuItem, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, MenuItem, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Manager, WebviewWindowBuilder};
 
@@ -20,6 +20,7 @@ static QUIT_FLAG: AtomicBool = AtomicBool::new(false);
 static LIGHT_MODE: AtomicBool = AtomicBool::new(false);
 static LIGHT_CLOSE: AtomicBool = AtomicBool::new(false);
 static LIGHT_ITEM: OnceLock<CheckMenuItem<tauri::Wry>> = OnceLock::new();
+static TOGGLE_ITEM: OnceLock<MenuItem<tauri::Wry>> = OnceLock::new();
 static EXTRA_ITEMS: OnceLock<Vec<(&'static str, &'static str, Option<fn()>)>> = OnceLock::new();
 static IPC_HANDLER: OnceLock<Box<dyn Fn(tauri::ipc::Invoke) -> bool + Send + Sync>> = OnceLock::new();
 static HOOK_BEFORE_TRAY: OnceLock<Option<fn() -> Result<(), String>>> = OnceLock::new();
@@ -123,9 +124,22 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
         });
 }
 
+/// 依据 is_running() 真实状态刷新菜单按钮文本。
+fn refresh_toggle_text() {
+    let running = crate::simple_serve::is_running();
+    let text = if running { "停止" } else { "启动" }.to_string();
+    tauri::async_runtime::spawn(async move {
+        if let Some(item) = TOGGLE_ITEM.get() {
+            let _ = item.set_text(text);
+        }
+    });
+}
+
 /// 创建托盘（必须在主线程调用，由 hook 成功后调度回主线程执行）
 fn create_tray(app: &tauri::AppHandle) {
-    // 申明托盘菜单项
+    // 声明托盘菜单项
+    let toggle = MenuItemBuilder::with_id("toggle", "启动").build(app).unwrap();
+    let _ = TOGGLE_ITEM.set(toggle.clone());
     let light = CheckMenuItem::with_id(app, "light", "轻量模式", true, false, None::<&str>).unwrap();
     let _ = LIGHT_ITEM.set(light.clone());
     let quit = MenuItemBuilder::with_id("quit", "退出").build(app).unwrap();
@@ -145,6 +159,8 @@ fn create_tray(app: &tauri::AppHandle) {
     for &(id, label, _) in EXTRA_ITEMS.get().unwrap() {
         if id=="" {
             menu = menu.item(&PredefinedMenuItem::separator(app).unwrap());
+        }else if id=="toggle" {
+            menu = menu.item(&toggle);
         }else if id=="light" {
             menu = menu.item(&light);
         }else{
@@ -159,7 +175,9 @@ fn create_tray(app: &tauri::AppHandle) {
     let tray = TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
         .show_menu_on_left_click(false)
+        .show_menu_on_right_click(false)
         .on_tray_icon_event(|_tray, event| {
+            // 左键弹起
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
@@ -168,10 +186,29 @@ fn create_tray(app: &tauri::AppHandle) {
             {
                 show_window("main");
             }
+            // 右键弹起
+            if let TrayIconEvent::Click {
+                button: MouseButton::Right,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                refresh_toggle_text();
+                if let Some(menu) = _tray.get_menu() {
+                    _tray.popup_menu(&menu);
+                }
+            }
         })
         .menu(&menu)
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "show" => show_window("main"),
+            "toggle" => {
+                if crate::simple_serve::is_running() {
+                    crate::simple_server::stop();
+                } else {
+                    crate::simple_server::restart();
+                }
+            }
             "light" => {
                 let is_light = !LIGHT_MODE.load(Ordering::SeqCst);
                 LIGHT_MODE.store(is_light, Ordering::SeqCst);
