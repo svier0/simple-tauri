@@ -1,6 +1,6 @@
 [package]
 name = "simple-tauri"
-version = "0.2.0"
+version = "0.3.0"
 description = "Tauri 2 desktop app helper: tray icon, multi-window, server process management, configured via compile-time JSON macros"
 authors = ["心衍"]
 edition = "2021"
@@ -11,7 +11,7 @@ repository = "https://github.com/svier0/simple-tauri"
 crate-type = ["rlib"]
 
 [dependencies]
-simple-tauri-macros = { version = "0.2.0", path = "macros" }
+simple-tauri-macros = { version = "0.3.0", path = "macros" }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
