@@ -31,7 +31,7 @@ pub fn ensure_node(ver: &str,dir: &str) -> Result<(), String> {
 	let url = format!("https://nodejs.org/dist/v{ver}/{filename}");
 	// 下载并解压
     unzip_remote(&url,
-    	crate::simple_tray::resource_dir("server/nodejs"),
-    	extract_dir)?;
+    	&crate::simple_tray::resource_dir(dir).to_string_lossy().into_owned(),
+    	&extract_dir)?;
     Ok(())
 }

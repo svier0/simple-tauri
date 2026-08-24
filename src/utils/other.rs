@@ -1,5 +1,5 @@
 
-use simple_tauri_macros::sh2rs
+use simple_tauri_macros::sh2rs;
 
 /// 解压远程zip到指定目录 (可选提取目录，默认提取全部)
 pub fn unzip_remote(zipurl: &str, dir: &str, extract_dir: &str) -> Result<(), String> {

@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 mod npm;
 mod github;
-pub npm::{get_npm_latest_ver};
-pub github::{get_gh_latest_ver,get_gh_preview_ver};
+pub use npm::{get_npm_latest_ver};
+pub use github::{get_gh_latest_ver,get_gh_preview_ver};
 
 /// 所有 https 请求共用一个 agent：只加密，不校验对端证书（接受任何证书）
 pub(crate) fn https_agent() -> ureq::Agent {
