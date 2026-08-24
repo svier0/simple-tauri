@@ -11,9 +11,9 @@ static PKG_NAME: OnceLock<String> = OnceLock::new();
 /// 自动更新
 static AUTO_UPDATE: AtomicBool = AtomicBool::new(false);
 /// 下载更新回调
-static ENSURE_SERVER: OnceLock<fn(&str) -> String> = OnceLock::new();
+static ENSURE_SERVER: OnceLock<fn(&str,&str) -> String> = OnceLock::new();
 /// 解析VER为下载地址的闭包
-static UPDATE_URL: OnceLock<fn(&str,&str) -> String> = OnceLock::new();
+static UPDATE_URL: OnceLock<fn(&str) -> String> = OnceLock::new();
 /// 下载包提取目录
 static EXTRACT_DIR: OnceLock<String> = OnceLock::new();
 
@@ -30,7 +30,7 @@ pub fn enable_auto_update(){
 }
 
 /// 设置解析ver为下载url的回调
-pub fn set_download_url(update_url: fn(&str) -> String,extract_dir) {
+pub fn set_download_url(update_url: fn(&str) -> String,extract_dir: &str) {
     UPDATE_URL.set(update_url).unwrap();
     let _ = EXTRACT_DIR.set(extract_dir.to_string());
 }
