@@ -128,11 +128,9 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
 fn refresh_toggle_text() {
     let running = crate::simple_serve::is_running();
     let text = if running { "停止" } else { "启动" }.to_string();
-    tauri::async_runtime::spawn(async move {
-        if let Some(item) = TOGGLE_ITEM.get() {
-            let _ = item.set_text(text);
-        }
-    });
+    if let Some(item) = TOGGLE_ITEM.get() {
+        let _ = item.set_text(text);
+    }
 }
 
 /// 创建托盘（必须在主线程调用，由 hook 成功后调度回主线程执行）
@@ -188,24 +186,24 @@ fn create_tray(app: &tauri::AppHandle) {
             // 右键按下
             if let TrayIconEvent::Click {
                 button: MouseButton::Right,
-                button_state: MouseButtonState::Up,
+                button_state: MouseButtonState::Down,
                 ..
             } = event
             {
                 refresh_toggle_text();
                 // if let Some(menu) = _tray.get_menu() {
-                    _tray.popup_menu(&menu);
+                    // _tray.with_inner_tray_icon(|inner| { let _ = inner.popup_menu(&menu); });
                 // }
             }
         })
-        // .menu(&menu)
+        .menu(&menu)
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "show" => show_window("main"),
             "toggle" => {
                 if crate::simple_serve::is_running() {
-                    crate::simple_serve::stop();
+                    let _ = crate::simple_serve::stop();
                 } else {
-                    crate::simple_serve::start();
+                    let _ = crate::simple_serve::start();
                 }
             }
             "light" => {

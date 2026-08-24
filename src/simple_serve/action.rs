@@ -32,7 +32,7 @@ pub fn start() -> std::io::Result<()> {
     set_run_flag(true);
 
     let dir = get_work_dir(None);
-    let proc = spawn_in_dir(std::path::Path::new(&dir), get_start_cmd())?;
+    let proc = spawn_in_dir(std::path::Path::new(&dir), &get_start_cmd())?;
 
     *child().lock().unwrap() = Some(proc);
     Ok(())

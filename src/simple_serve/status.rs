@@ -59,6 +59,6 @@ pub fn wait_port_timeout(port: u16, timeout_secs: u64, interval: f64) -> std::io
                 format!("端口 {port} 等待连接超时"),
             ));
         }
-        crate::utils::sh2rs!("sleep {}",interval);
+        let _ = crate::utils::sh2rs!("sleep {}",interval);
     }
 }
