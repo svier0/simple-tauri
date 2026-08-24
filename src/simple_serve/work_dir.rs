@@ -19,7 +19,7 @@ pub fn get_work_dir(ver: Option<&str>) -> String {
         .get()
         .expect("set_work_dir 必须先于 get_work_dir 调用");
     let v = ver.map(|s| s.to_string())
-        .or_else(|| get_local_ver())
+        .or_else(|| Some(get_local_ver()))
         .unwrap_or_default();
     crate::simple_tray::resource_dir(&rule.replace("<ver>", &v))
         .to_string_lossy()

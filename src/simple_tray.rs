@@ -175,7 +175,6 @@ fn create_tray(app: &tauri::AppHandle) {
     let tray = TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
         .show_menu_on_left_click(false)
-        .show_menu_on_right_click(false)
         .on_tray_icon_event(|_tray, event| {
             // 左键弹起
             if let TrayIconEvent::Click {
@@ -186,7 +185,7 @@ fn create_tray(app: &tauri::AppHandle) {
             {
                 show_window("main");
             }
-            // 右键弹起
+            // 右键按下
             if let TrayIconEvent::Click {
                 button: MouseButton::Right,
                 button_state: MouseButtonState::Up,
@@ -194,19 +193,19 @@ fn create_tray(app: &tauri::AppHandle) {
             } = event
             {
                 refresh_toggle_text();
-                if let Some(menu) = _tray.get_menu() {
+                // if let Some(menu) = _tray.get_menu() {
                     _tray.popup_menu(&menu);
-                }
+                // }
             }
         })
-        .menu(&menu)
+        // .menu(&menu)
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "show" => show_window("main"),
             "toggle" => {
                 if crate::simple_serve::is_running() {
                     crate::simple_serve::stop();
                 } else {
-                    crate::simple_serve::restart();
+                    crate::simple_serve::start();
                 }
             }
             "light" => {
