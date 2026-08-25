@@ -6,6 +6,7 @@ use std::env::consts::{ARCH, OS};
 /// 安装node
 pub fn ensure_node(ver: &str,dir: &str) -> Result<(), String> {
 	let ver = if ver.is_empty() { "26.7.0" } else { ver };
+	let dir = if dir.is_empty() { "server/nodejs" } else { dir };
 	let extract_dir = format!(
 		"node-v{ver}-{}-{}",
 		match OS {
