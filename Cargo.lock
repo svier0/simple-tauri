@@ -3451,6 +3451,7 @@ dependencies = [
  "simple-tauri-macros",
  "tauri",
  "tauri-plugin-opener",
+ "tokio",
  "ureq",
  "url",
  "windows-sys 0.59.0",

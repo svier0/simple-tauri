@@ -43,59 +43,46 @@ pub fn path_rel2abs(path: &str,root: std::path::PathBuf) -> std::path::PathBuf {
 }
 
 /// 异步线程回调转为同步阻塞
-/// 例: sync_call(|ok,err|{ ok(); },1)?;
-/// 提示: 当心同线程死锁
-pub fn sync_call<F, O, E>(f: F,timeout_secs: u64) -> Result<(), String>
+/// 调用示例： let result = sync_call(|ok,err|{},1)?;
+/// 提示: 当心同线程死锁(请使用async_call)
+pub fn sync_call<F>(f: F,timeout_secs: u64) -> Result<(), String>
 where
-    F: FnOnce(O, E) -> Result<(), String>,
-    O: FnOnce(),
-    E: FnOnce(String),
+    F: FnOnce(Box<dyn FnOnce() + Send>, Box<dyn FnOnce(String) + Send>) -> Result<(), String>,
 {
     let timeout = std::time::Duration::from_secs(timeout_secs);
 
     let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
     let tx_err = tx.clone();
 
-    let ok = || {
-        let _ = tx.send(Ok(()));
-    };
-    let err = |msg: String| {
-        let _ = tx_err.send(Err(msg));
-    };
+    let ok: Box<dyn FnOnce() + Send> = Box::new(move || { let _ = tx.send(Ok(())); });
+    let err: Box<dyn FnOnce(String) + Send> = Box::new(move |msg: String| { let _ = tx_err.send(Err(msg)); });
 
-    let _ = f(ok,err)?;
+    f(ok, err)?;
 
     rx.recv_timeout(timeout)
             .map_err(|e| match e {
                 std::sync::mpsc::RecvTimeoutError::Timeout => format!("callback timed out after {:?}", timeout),
                 std::sync::mpsc::RecvTimeoutError::Disconnected => "callback dropped before completing".into(),
-            })
-            .and_then(|r| r)?
+            })?
 }
 
-/// 异步事件回调转为同步阻塞
-pub async fn async_call<F, O, E>(f: F, timeout_secs: u64) -> Result<(), String>
+/// 异步事件回调转为同步阻塞（await 版）
+/// 调用示例： let result = async_call(|ok,err|{},1).await?;
+pub async fn async_call<F>(f: F,timeout_secs: u64) -> Result<(), String>
 where
-    F: FnOnce(O, E) -> Result<(), String>,
-    O: FnOnce(),
-    E: FnOnce(String),
+    F: FnOnce(Box<dyn FnOnce() + Send>, Box<dyn FnOnce(String) + Send>) -> Result<(), String>,
 {
     let timeout = std::time::Duration::from_secs(timeout_secs);
 
-    let (tx, rx) = std::sync::mpsc::channel();
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Result<(), String>>(1);
     let tx_err = tx.clone();
 
-    let ok = || {
-        let _ = tx.send(Ok(()));
-    };
-    let err = |msg: String| {
-        let _ = tx_err.send(Err(msg));
-    };
+    let ok: Box<dyn FnOnce() + Send> = Box::new(move || { let _ = tx.send(Ok(())); });
+    let err: Box<dyn FnOnce(String) + Send> = Box::new(move |msg: String| { let _ = tx_err.send(Err(msg)); });
 
-    let _ = f(ok,err)?;
+    f(ok, err)?;
 
-    tokio::time::timeout(timeout, rx)
-        .await
-        .map_err(|_| "timed out".to_string())?
-        .ok_or("callback dropped".to_string())?
+    tokio::time::timeout(timeout, rx.recv()).await
+        .map_err(|_| format!("callback timed out after {:?}", timeout))?
+        .ok_or("callback dropped before completing".to_string())?
 }
