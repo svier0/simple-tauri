@@ -3,7 +3,7 @@ use std::path::Path;
 
 /// 解压zip文件 至指定目录 (可选提取目录，默认提取全部)
 pub fn unzip(zipfile: &str,dir: &str,extract_dir: &str) -> Result<(), String> {
-	let zip_file = fs::File::open(zipfile)
+	let zip_file = fs::File::open(super::to_path(zipfile))
         .map_err(|e| format!("打开 zip 失败: {}", e))?;
     let mut archive = zip::ZipArchive::new(zip_file)
         .map_err(|e| format!("读取 zip 失败: {}", e))?;
@@ -33,7 +33,7 @@ pub fn unzip(zipfile: &str,dir: &str,extract_dir: &str) -> Result<(), String> {
             &name
         };
 
-        let out_path = Path::new(dir).join(relative);
+        let out_path = super::to_path(dir).join(relative);
 
         if name.ends_with('/') {
             fs::create_dir_all(&out_path)

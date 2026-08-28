@@ -3,12 +3,12 @@ use std::path::Path;
 
 /// 移动文件或目录（跨设备时回退为 复制+删除）
 pub fn mv(origin_path: &str, target_path: &str) -> Result<(), String> {
-    let origin = Path::new(origin_path);
+    let origin = super::to_path(origin_path);
     if !origin.exists() {
         return Err(format!("源路径不存在: {}", origin_path));
     }
 
-    let target = Path::new(target_path);
+    let target = super::to_path(target_path);
     let dest = if target.is_dir() {
         target.join(
             origin

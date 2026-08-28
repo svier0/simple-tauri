@@ -60,19 +60,27 @@ pub fn get_stderr_buffer() -> String {
 }
 
 /// 设置工作目录
-pub fn set_work_dir(buffer: &str) {
-    *WORK_DIR.lock().unwrap() = Some(buffer.to_string());
+pub fn set_work_dir(dir: &str) {
+    *WORK_DIR.lock().unwrap() = Some(dir.to_string());
 }
 
 /// 获取工作目录
 pub fn get_work_dir() -> String {
-    let r = WORK_DIR
+    WORK_DIR
         .lock()
         .unwrap()
         .clone()
-        .unwrap_or_default();
-    *WORK_DIR.lock().unwrap() = None;
-    r
+        .unwrap_or(crate::simple_tray::resource_dir("").to_string_lossy())
+}
+
+/// 相对路径转绝对路径
+pub(crate) fn to_path(target: &str) -> std::path::PathBuf {
+    let p = Path::new(target);
+    if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        Path::new(get_work_dir()).join(target)
+    }
 }
 
 /// 判断 target 是否为可写的普通文件路径：
@@ -80,7 +88,7 @@ pub fn get_work_dir() -> String {
 /// - 不存在但父目录存在（或当前目录下的新文件名）→ 可新建
 /// - 目录或其它非法路径 → 否（不应被当作文件写入）
 fn is_regular_file_path(target: &str) -> bool {
-    let p = Path::new(target);
+    let p = super::to_path(target);
     if p.is_dir() {
         return false;
     }

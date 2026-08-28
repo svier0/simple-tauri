@@ -17,13 +17,7 @@ pub fn wget(url: &str) -> Result<(), String> {
 /// 下载文件 指定保存文件名
 #[allow(non_snake_case)]
 pub fn wget_O(fname: &str, url: &str) -> Result<(), String> {
-    let p = Path::new(fname);
-    let tmp_file = if p.is_absolute() {
-        p.to_path_buf()
-    } else {
-        let tmp_dir = std::env::temp_dir();
-        tmp_dir.join(fname)
-    };
+    let tmp_file = super::to_path(fname);
 
     let resp = crate::utils::ver::https_agent()
         .get(url)

@@ -3,7 +3,7 @@ use std::fs;
 
 /// 删除文件/目录
 pub fn rm(target: &str) -> Result<(), String> {
-    let p = Path::new(target);
+    let p = super::to_path(target);
     if !p.exists() {
         return Ok(())
     }
@@ -18,7 +18,7 @@ pub fn rm(target: &str) -> Result<(), String> {
 
 /// 删除文件/目录（递归）
 pub fn rm_r(target: &str) -> Result<(), String> {
-    let p = Path::new(target);
+    let p = super::to_path(target);
     if !p.exists() {
         return Ok(())
     }
