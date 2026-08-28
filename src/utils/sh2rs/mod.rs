@@ -1,4 +1,6 @@
 mod operator;
+mod echo;
+mod cat;
 mod wget;
 mod mkdir;
 mod rm;
@@ -8,6 +10,8 @@ mod cp;
 mod mv;
 
 pub use operator::*;
+pub use echo::*;
+pub use cat::*;
 pub use wget::*;
 pub use mkdir::*;
 pub use rm::*;
@@ -23,6 +27,12 @@ pub fn sh2rs(input: &str) -> Result<(), String> {
         return Err(format!("unsupported command: {input}"));
     }
     match parts[0].as_str() {
+        "echo" => {
+            echo(&parts[1..].join(" "))
+        }
+        "cat" => {
+            cat(&parts[1..].join(" "))
+        }
         "wget" => {
             if parts.get(1).map(String::as_str) == Some("-O") {
                 if parts.get(2).map(String::as_str) == Some("-") {
