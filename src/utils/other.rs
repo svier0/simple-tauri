@@ -10,11 +10,11 @@ pub fn unzip_remote(zipurl: &str, dir: &str, extract_dir: &str) -> Result<(), St
         .and_then(|s| s.last())
         .unwrap_or("tmp.zip")
         .to_string();
-    let tmp_file = std::env::temp_dir().join(&fname);
+    let tmp_file = std::env::temp_dir().join(&fname).to_string_lossy();
     // 调用处把 Windows 反斜杠换成 /（Windows 同样识别 /），shlex 不处理 /，路径完整保留
-    let tmp = tmp_file.to_string_lossy().replace('\\', "/");
+    let tmp_file = tmp_file.replace('\\', "/");
     let dir = dir.replace('\\', "/");
-    sh2rs!("wget -O {} {}", tmp, zipurl)?;
+    sh2rs!("wget -O {} {}", tmp_file, zipurl)?;
 
     // ---------- 清理目录 ----------
     sh2rs!("rm -rf {}", dir)
@@ -23,11 +23,11 @@ pub fn unzip_remote(zipurl: &str, dir: &str, extract_dir: &str) -> Result<(), St
         .map_err(|e| format!("创建目录失败: {}", e))?;
 
     // ---------- 解压 ----------
-    sh2rs!("unzip {} {} {}", tmp, dir, extract_dir)
+    sh2rs!("unzip {} {} {}", tmp_file, dir, extract_dir)
         .map_err(|e| format!("解压失败: {}", e))?;
 
     // ---------- 删除临时文件 ----------
-    sh2rs!("rm {}", tmp)?;
+    sh2rs!("rm {}", tmp_file)?;
 
     Ok(())
 }

@@ -35,9 +35,8 @@ pub fn ensure_node(ver: &str,dir: &str) -> Result<(), String> {
 	);
 	let url = format!("https://nodejs.org/dist/v{ver}/{filename}");
 	// 下载并解压
-    unzip_remote(&url,
-    	&crate::simple_tray::resource_dir(dir).to_string_lossy(),
-    	&extract_dir)?;
+    unzip_remote(&url,dir,&extract_dir)?;
+    crate::utils::sh2rs!("mkdir -p {}/npm-cache",dir).ok();
     Ok(())
 }
 
