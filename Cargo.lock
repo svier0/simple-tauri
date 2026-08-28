@@ -3448,6 +3448,7 @@ dependencies = [
  "native-tls",
  "serde",
  "serde_json",
+ "shlex",
  "simple-tauri-macros",
  "tauri",
  "tauri-plugin-opener",

@@ -68,6 +68,7 @@ where
 
 /// 异步事件回调转为同步阻塞（await 版）
 /// 调用示例： let result = async_call(|ok,err|{},1).await?;
+/// 提示: 必须在async函数中调用
 pub async fn async_call<F>(f: F,timeout_secs: u64) -> Result<(), String>
 where
     F: FnOnce(Box<dyn FnOnce() + Send>, Box<dyn FnOnce(String) + Send>) -> Result<(), String>,
