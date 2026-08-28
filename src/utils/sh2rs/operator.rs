@@ -70,7 +70,7 @@ pub fn get_work_dir() -> String {
         .lock()
         .unwrap()
         .clone()
-        .unwrap_or(crate::simple_tray::resource_dir("").to_string_lossy())
+        .unwrap_or(crate::simple_tray::resource_dir("").to_string_lossy().to_string())
 }
 
 /// 相对路径转绝对路径
@@ -79,7 +79,7 @@ pub(crate) fn to_path(target: &str) -> std::path::PathBuf {
     if p.is_absolute() {
         p.to_path_buf()
     } else {
-        Path::new(get_work_dir()).join(target)
+        Path::new(&get_work_dir()).join(target)
     }
 }
 

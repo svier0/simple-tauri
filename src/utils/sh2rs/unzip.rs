@@ -1,5 +1,4 @@
 use std::fs;
-use std::path::Path;
 
 /// 解压zip文件 至指定目录 (可选提取目录，默认提取全部)
 pub fn unzip(zipfile: &str,dir: &str,extract_dir: &str) -> Result<(), String> {

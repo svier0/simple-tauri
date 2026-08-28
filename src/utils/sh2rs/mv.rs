@@ -1,6 +1,4 @@
 use std::fs;
-use std::path::Path;
-
 /// 移动文件或目录（跨设备时回退为 复制+删除）
 pub fn mv(origin_path: &str, target_path: &str) -> Result<(), String> {
     let origin = super::to_path(origin_path);

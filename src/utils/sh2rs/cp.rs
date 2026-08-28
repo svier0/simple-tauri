@@ -1,5 +1,4 @@
 use std::fs;
-use std::path::Path;
 
 /// 复制文件或目录（目录递归复制自身）
 pub fn cp(origin_path: &str, target_path: &str) -> Result<(), String> {

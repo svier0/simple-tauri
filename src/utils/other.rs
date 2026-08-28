@@ -10,9 +10,9 @@ pub fn unzip_remote(zipurl: &str, dir: &str, extract_dir: &str) -> Result<(), St
         .and_then(|s| s.last())
         .unwrap_or("tmp.zip")
         .to_string();
-    let tmp_file = std::env::temp_dir().join(&fname).to_string_lossy();
+    let tmp_path = std::env::temp_dir().join(&fname);
     // 调用处把 Windows 反斜杠换成 /（Windows 同样识别 /），shlex 不处理 /，路径完整保留
-    let tmp_file = tmp_file.replace('\\', "/");
+    let tmp_file = tmp_path.to_string_lossy().replace('\\', "/");
     let dir = dir.replace('\\', "/");
     sh2rs!("wget -O {} {}", tmp_file, zipurl)?;
 

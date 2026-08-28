@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::fs;
 
 /// 删除文件/目录
