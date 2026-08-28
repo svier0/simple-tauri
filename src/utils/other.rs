@@ -15,7 +15,7 @@ pub fn unzip_remote(zipurl: &str, dir: &str, extract_dir: &str) -> Result<(), St
 
     // ---------- 清理目录 ----------
     sh2rs!("rm -rf {}", dir)
-        .map_err(|e| format!("删除目录失败: {}", e))?;
+        .ok();
     sh2rs!("mkdir -p {}", dir)
         .map_err(|e| format!("创建目录失败: {}", e))?;
 

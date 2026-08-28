@@ -59,6 +59,22 @@ pub fn get_stderr_buffer() -> String {
     r
 }
 
+/// 设置工作目录
+pub fn set_work_dir(buffer: &str) {
+    *WORK_DIR.lock().unwrap() = Some(buffer.to_string());
+}
+
+/// 获取工作目录
+pub fn get_work_dir() -> String {
+    let r = WORK_DIR
+        .lock()
+        .unwrap()
+        .clone()
+        .unwrap_or_default();
+    *WORK_DIR.lock().unwrap() = None;
+    r
+}
+
 /// 判断 target 是否为可写的普通文件路径：
 /// - 已存在的普通文件 → 可写（覆盖）
 /// - 不存在但父目录存在（或当前目录下的新文件名）→ 可新建
@@ -99,7 +115,7 @@ fn is_special_fs_path(target: &str) -> bool {
 
 /// 输入重定向符号
 /// 穷举可跟类型：普通文件路径 / &N 文件描述符 / /dev/null / <(...) 进程替换 / 终端
-pub fn in_redirection(token: &str, origin: &str) -> Result<(), String> {
+pub fn in_redirection(_token: &str, origin: &str) -> Result<(), String> {
     if origin.starts_with('&') || origin.starts_with("<(") {
         // &N 文件描述符、<(...) 进程替换：未实现
         Err("未实现的操作符".to_string())
@@ -123,7 +139,7 @@ pub fn in_redirection(token: &str, origin: &str) -> Result<(), String> {
 
 /// 输出重定向符号
 /// 穷举可跟类型：普通文件路径（含 /dev、/proc、/sys 下文件）/ &N 文件描述符 / /dev/null / >(...) 进程替换（后两者未实现）
-pub fn out_redirection(token: &str, target: &str) -> Result<(), String> {
+pub fn out_redirection(_token: &str, target: &str) -> Result<(), String> {
     if target.starts_with('&') || target.starts_with(">(") {
         // &N 文件描述符、>(...) 进程替换：未实现
         Err("未实现的操作符".to_string())
@@ -145,7 +161,7 @@ pub fn out_redirection(token: &str, target: &str) -> Result<(), String> {
 
 /// 追加重定向符号
 /// 穷举可跟类型：普通文件路径（含 /dev、/proc、/sys 下文件）/ &N 文件描述符 / /dev/null / >(...) 进程替换（后两者未实现）
-pub fn append_redirection(token: &str, target: &str) -> Result<(), String> {
+pub fn append_redirection(_token: &str, target: &str) -> Result<(), String> {
     if target.starts_with('&') || target.starts_with(">(") {
         // &N 文件描述符、>(...) 进程替换：未实现
         Err("未实现的操作符".to_string())
@@ -173,7 +189,7 @@ pub fn append_redirection(token: &str, target: &str) -> Result<(), String> {
 
 /// 错误重定向符号
 /// 穷举可跟类型：普通文件路径（含 /dev、/proc、/sys 下文件）/ &N 文件描述符 / /dev/null / >(...) 进程替换（后两者未实现）
-pub fn error_redirection(token: &str, target: &str) -> Result<(), String> {
+pub fn error_redirection(_token: &str, target: &str) -> Result<(), String> {
     if target.starts_with('&') || target.starts_with(">(") {
         // &N 文件描述符、>(...) 进程替换：未实现
         Err("未实现的操作符".to_string())

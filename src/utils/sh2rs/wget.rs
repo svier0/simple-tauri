@@ -31,7 +31,7 @@ pub fn wget_O(fname: &str, url: &str) -> Result<(), String> {
         .map_err(|e| format!("下载失败: {}", e))?;
 
     let mut file = fs::File::create(&tmp_file)
-        .map_err(|e| format!("创建临时文件失败: {}", e))?;
+        .map_err(|e| format!("创建临时文件失败: {} {}",&tmp_file.display(), e))?;
     let mut reader = resp.into_reader();
     std::io::copy(&mut reader, &mut file).map_err(|e| format!("写入失败: {}", e))?;
     Ok(())

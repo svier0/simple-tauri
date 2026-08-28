@@ -5,6 +5,10 @@ use std::env::consts::{ARCH, OS};
 
 /// 安装node
 pub fn ensure_node(ver: &str,dir: &str) -> Result<(), String> {
+	if crate::simple_tray::resource_dir("server/nodejs/node.exe").is_file()
+		|| crate::simple_tray::resource_dir("server/nodejs/node").is_file(){
+		return Ok(());
+	}
 	let ver = if ver.is_empty() { "26.7.0" } else { ver };
 	let dir = if dir.is_empty() { "server/nodejs" } else { dir };
 	let extract_dir = format!(
@@ -32,7 +36,12 @@ pub fn ensure_node(ver: &str,dir: &str) -> Result<(), String> {
 	let url = format!("https://nodejs.org/dist/v{ver}/{filename}");
 	// 下载并解压
     unzip_remote(&url,
-    	&crate::simple_tray::resource_dir(dir).to_string_lossy().into_owned(),
+    	&crate::simple_tray::resource_dir(dir).to_string_lossy(),
     	&extract_dir)?;
     Ok(())
+}
+
+/// 安装pnpm
+pub fn ensure_pnpm(_ver: &str,_dir: &str) -> Result<(), String> {
+	Ok(())
 }

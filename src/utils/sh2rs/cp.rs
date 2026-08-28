@@ -26,8 +26,8 @@ pub fn cp(origin_path: &str, target_path: &str) -> Result<(), String> {
             let path = entry.path();
             let child_dst = dest.join(entry.file_name());
             cp(
-                &path.to_string_lossy().into_owned(),
-                &child_dst.to_string_lossy().into_owned(),
+                &path.to_string_lossy(),
+                &child_dst.to_string_lossy(),
             )?;
         }
         Ok(())
