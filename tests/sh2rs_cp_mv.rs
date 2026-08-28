@@ -5,7 +5,7 @@ use std::path::Path;
 fn tmp(name: &str) -> String {
     let p = std::env::temp_dir().join(format!("simple_tauri_test_{}", name));
     let _ = fs::remove_dir_all(&p);
-    p.to_string()
+    p.to_string_lossy().to_string()
 }
 
 #[test]
@@ -33,7 +33,7 @@ fn cp_into_existing_dir() {
     fs::create_dir_all(&dst).unwrap();
 
     cp(&src, &dst).unwrap();
-    let src_name = Path::new(&src).file_name().unwrap().to_string();
+    let src_name = Path::new(&src).file_name().unwrap().to_string_lossy().to_string();
     assert!(Path::new(&dst).join(&src_name).exists());
 
     let _ = fs::remove_dir_all(&src);
