@@ -20,6 +20,7 @@ pub fn get_stdout_buffer() -> String {
     *STDOUT_BUFFER.lock().unwrap() = None;
     r
 }
+
 /// 设置错误缓冲区
 pub fn set_error_buffer(buffer: &str) {
     *ERROR_BUFFER.lock().unwrap() = Some(buffer.to_string());
@@ -44,9 +45,17 @@ pub fn in_redirection(token: &str,origin: &str) -> Result<(), String> {
 /// 输出重定向符号
 pub fn out_redirection(token: &str,target: &str) -> Result<(), String> {
 	Err("未实现的操作符".to_string())
+    // target为文件 get_stdout_buffer()写入到target
 }
 
 /// 追加重定向符号
 pub fn append_redirection(token: &str,target: &str) -> Result<(), String> {
 	Err("未实现的操作符".to_string())
+    // target为文件 get_stdout_buffer()追加写入到target
+}
+
+/// 错误重定向符号
+pub fn error_redirection(token: &str,target: &str) -> Result<(), String> {
+    Err("未实现的操作符".to_string())
+    // target为文件 get_stdout_buffer()追加写入到target
 }

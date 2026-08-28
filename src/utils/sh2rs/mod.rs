@@ -26,6 +26,10 @@ pub fn sh2rs(input: &str) -> Result<(), String> {
     if parts.is_empty() {
         return Err(format!("unsupported command: {input}"));
     }
+
+    // 判断重定向操作符
+
+    // 分流 执行具体命令
     match parts[0].as_str() {
         "echo" => {
             echo(&parts[1..].join(" "))
