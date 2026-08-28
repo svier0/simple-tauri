@@ -1,3 +1,4 @@
+mod operator;
 mod wget;
 mod mkdir;
 mod rm;
@@ -6,6 +7,7 @@ mod sleep;
 mod cp;
 mod mv;
 
+pub use operator::*;
 pub use wget::*;
 pub use mkdir::*;
 pub use rm::*;
@@ -68,13 +70,5 @@ pub fn sh2rs(input: &str) -> Result<(), String> {
             }
         }
         _ => Err(format!("unsupported command: {}", parts[0])),
-    }
-}
-
-pub fn sh2rs_rst(input: &str,_type: &str) -> String {
-    if input=="wget" {
-        get_wget_result(_type)
-    } else{
-        String::new()
     }
 }

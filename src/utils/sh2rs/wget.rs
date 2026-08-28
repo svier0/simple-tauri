@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::Path;
 use url::Url;
-use std::sync::{Mutex};
 
 /// 下载文件
 pub fn wget(url: &str) -> Result<(), String> {
@@ -38,8 +37,6 @@ pub fn wget_O(fname: &str, url: &str) -> Result<(), String> {
     Ok(())
 }
 
-static WGET_BODY_RESULT: Mutex<Option<String>> = Mutex::new(None);
-
 /// 读取远程文件 不落盘
 #[allow(non_snake_case)]
 pub fn wget_O_(url: &str) -> Result<(), String> {
@@ -51,19 +48,6 @@ pub fn wget_O_(url: &str) -> Result<(), String> {
     let status = resp.status();
     let body = resp.into_string()
         .map_err(|e| format!("wget: 读取响应体失败: status={status} err={e}"))?;
-    *WGET_BODY_RESULT.lock().unwrap() = Some(body);
+    super::set_stdout_buffer(&body);
     Ok(())
-}
-
-pub fn get_wget_result(_type:&str) -> String {
-    let mut r = String::new();
-    if _type=="body" {
-        r = WGET_BODY_RESULT
-            .lock()
-            .unwrap()
-            .clone()
-            .unwrap_or_default();
-        *WGET_BODY_RESULT.lock().unwrap() = None;
-    }
-    r
 }

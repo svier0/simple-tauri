@@ -22,8 +22,8 @@ pub fn mv(origin_path: &str, target_path: &str) -> Result<(), String> {
     match fs::rename(origin, &dest) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::CrossesDevices => {
-            super::cp::cp(origin_path, target_path)?;
-            super::rm::rm_r(origin_path)
+            super::cp(origin_path, target_path)?;
+            super::rm_r(origin_path)
         }
         Err(e) => Err(e.to_string()),
     }
