@@ -1,22 +1,24 @@
 mod operator;
+mod cd;
 mod echo;
 mod cat;
+mod sleep;
 mod wget;
 mod mkdir;
 mod rm;
 mod unzip;
-mod sleep;
 mod cp;
 mod mv;
 
 pub use operator::*;
+pub use cd::*;
 pub use echo::*;
 pub use cat::*;
+pub use sleep::*;
 pub use wget::*;
 pub use mkdir::*;
 pub use rm::*;
 pub use unzip::*;
-pub use sleep::*;
 pub use cp::*;
 pub use mv::*;
 
@@ -31,11 +33,17 @@ pub fn sh2rs(input: &str) -> Result<(), String> {
 
     // 分流 执行具体命令
     match parts[0].as_str() {
+        "cd" => {
+            cd(&parts[1..].join(" "))
+        }
         "echo" => {
             echo(&parts[1..].join(" "))
         }
         "cat" => {
             cat(&parts[1..].join(" "))
+        }
+        "sleep" => {
+            sleep(&parts[1..].join(" "))
         }
         "wget" => {
             if parts.get(1).map(String::as_str) == Some("-O") {
@@ -50,9 +58,6 @@ pub fn sh2rs(input: &str) -> Result<(), String> {
             } else {
                 wget(&parts[1..].join(" "))
             }
-        }
-        "sleep" => {
-            sleep(&parts[1..].join(" "))
         }
         "mkdir" => {
             if parts.get(1).map(String::as_str) == Some("-p") {

@@ -1,5 +1,21 @@
 use std::fs;
+use std::io::Read;
 use url::Url;
+
+struct ProgressReader<R, F> {
+    inner: R,
+    on_progress: F,
+    done: u64,
+}
+
+impl<R: Read, F: Fn(u64)> Read for ProgressReader<R, F> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let n = self.inner.read(buf)?;
+        self.done += n as u64;
+        (self.on_progress)(self.done);
+        Ok(n)
+    }
+}
 
 /// 下载文件
 pub fn wget(url: &str) -> Result<(), String> {
@@ -23,9 +39,33 @@ pub fn wget_O(fname: &str, url: &str) -> Result<(), String> {
         .call()
         .map_err(|e| format!("下载失败: {}", e))?;
 
+    let total: u64 = resp
+        .header("Content-Length")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+
+    let on_progress = {
+        let last_pct = std::cell::Cell::new(None::<u64>);
+        move |done: u64| {
+            if total > 0 {
+                let pct = done * 100 / total;
+                if last_pct.get() != Some(pct) {
+                    last_pct.set(Some(pct));
+                    super::set_stdout_buffer(&format!("下载 {url} ... {pct}%"));
+                }
+            } else {
+                super::set_stdout_buffer(&format!("下载 {url} ... {done} bytes"));
+            }
+        }
+    };
+
     let mut file = fs::File::create(&tmp_file)
         .map_err(|e| format!("创建临时文件失败: {} {}",&tmp_file.display(), e))?;
-    let mut reader = resp.into_reader();
+    let mut reader = ProgressReader {
+        inner: resp.into_reader(),
+        on_progress,
+        done: 0,
+    };
     std::io::copy(&mut reader, &mut file).map_err(|e| format!("写入失败: {}", e))?;
     Ok(())
 }
