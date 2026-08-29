@@ -10,6 +10,8 @@ static STDOUT_BUFFER: Mutex<Option<String>> = Mutex::new(None);
 static STDERR_BUFFER: Mutex<Option<String>> = Mutex::new(None);
 /// 工作目录
 static WORK_DIR: Mutex<Option<String>> = Mutex::new(None);
+/// 工作目录栈
+static WORK_DIR_STACK: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 /// 设置输入缓冲区
 pub fn set_stdin_buffer(buffer: &str) {
@@ -62,6 +64,7 @@ pub fn get_stderr_buffer() -> String {
 /// 设置工作目录
 pub fn set_work_dir(dir: &str) {
     *WORK_DIR.lock().unwrap() = Some(dir.to_string());
+    WORK_DIR_STACK.lock().unwrap().insert(0,dir.to_string());
 }
 
 /// 获取工作目录
@@ -71,6 +74,11 @@ pub fn get_work_dir() -> String {
         .unwrap()
         .clone()
         .unwrap_or(crate::simple_tray::resource_dir("").to_string_lossy().to_string())
+}
+
+/// 获取工作目录栈
+pub fn get_work_dir_stack() -> std::sync::MutexGuard<'static, Vec<String>> {
+    WORK_DIR_STACK.lock().unwrap()
 }
 
 /// 相对路径转绝对路径

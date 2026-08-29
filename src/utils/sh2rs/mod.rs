@@ -1,5 +1,6 @@
 mod operator;
 mod cd;
+mod sh;
 mod echo;
 mod cat;
 mod sleep;
@@ -12,6 +13,7 @@ mod mv;
 
 pub use operator::*;
 pub use cd::*;
+pub use sh::*;
 pub use echo::*;
 pub use cat::*;
 pub use sleep::*;
@@ -35,6 +37,9 @@ pub fn sh2rs(input: &str) -> Result<(), String> {
     match parts[0].as_str() {
         "cd" => {
             cd(&parts[1..].join(" "))
+        }
+        "sh" => {
+            sh(&parts[1..].join(" "))
         }
         "echo" => {
             echo(&parts[1..].join(" "))

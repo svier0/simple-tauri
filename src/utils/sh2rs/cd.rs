@@ -2,7 +2,10 @@
 /// 切换工作目录
 pub fn cd(dir: &str) -> Result<(), String> {
     let path = super::to_path(dir);
-    if !path.exists() {
+    if dir=="-" {
+        super::set_work_dir(&super::get_work_dir_stack()[0].to_string());
+        Ok(())
+    }else if !path.exists() {
         Err("目录不存在".to_string())
     }else if path.is_dir() {
         super::set_work_dir(&path.to_string_lossy().to_string());
