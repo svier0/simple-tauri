@@ -131,22 +131,22 @@ fn is_special_fs_path(target: &str) -> bool {
 
 /// 输入重定向符号
 /// 穷举可跟类型：普通文件路径 / &N 文件描述符 / /dev/null / <(...) 进程替换 / 终端
-pub fn in_redirection(_token: &str, origin: &str) -> Result<(), String> {
+pub fn in_redirection(token: &str, origin: &str) -> Result<(), String> {
     if origin.starts_with('&') || origin.starts_with("<(") {
         // &N 文件描述符、<(...) 进程替换：未实现
         Err("未实现的操作符".to_string())
     } else if origin == "/dev/null" {
         // 丢弃输入
         set_stdin_buffer("");
-        Ok(())
+        super::sh2rs(token)
     } else if is_special_fs_path(origin) {
         // /dev、/proc、/sys、Windows 设备等特殊文件系统：不允许任意读写，未实现
         Err("未实现的操作符".to_string())
     } else if Path::new(origin).is_file() {
         // 普通文件：读入 stdin 缓冲
-        let content = std::fs::read_to_string(origin).map_err(|e| e.to_string())?;
+        let content = std::fs::read_to_string(super::to_path(origin)).map_err(|e| e.to_string())?;
         set_stdin_buffer(&content);
-        Ok(())
+        super::sh2rs(token)
     } else {
         // 其它未穷举到的类型 → 未实现
         Err("未实现的操作符".to_string())
@@ -155,11 +155,12 @@ pub fn in_redirection(_token: &str, origin: &str) -> Result<(), String> {
 
 /// 输出重定向符号
 /// 穷举可跟类型：普通文件路径（含 /dev、/proc、/sys 下文件）/ &N 文件描述符 / /dev/null / >(...) 进程替换（后两者未实现）
-pub fn out_redirection(_token: &str, target: &str) -> Result<(), String> {
+pub fn out_redirection(token: &str, target: &str) -> Result<(), String> {
     if target.starts_with('&') || target.starts_with(">(") {
         // &N 文件描述符、>(...) 进程替换：未实现
         Err("未实现的操作符".to_string())
     } else if target == "/dev/null" || target.eq_ignore_ascii_case("NUL") {
+        super::sh2rs(token)?;
         // 丢弃标准输出
         get_stdout_buffer();
         Ok(())
@@ -167,8 +168,9 @@ pub fn out_redirection(_token: &str, target: &str) -> Result<(), String> {
         // /dev、/proc、/sys、Windows 设备等特殊文件系统：不允许任意读写，未实现
         Err("未实现的操作符".to_string())
     } else if is_regular_file_path(target) {
+        super::sh2rs(token)?;
         // 普通文件路径：覆盖或新建
-        std::fs::write(target, get_stdout_buffer()).map_err(|e| e.to_string())
+        std::fs::write(super::to_path(target), get_stdout_buffer()).map_err(|e| e.to_string())
     } else {
         // 其它未穷举到的类型（目录、非法路径等）→ 未实现
         Err("未实现的操作符".to_string())
@@ -177,11 +179,12 @@ pub fn out_redirection(_token: &str, target: &str) -> Result<(), String> {
 
 /// 追加重定向符号
 /// 穷举可跟类型：普通文件路径（含 /dev、/proc、/sys 下文件）/ &N 文件描述符 / /dev/null / >(...) 进程替换（后两者未实现）
-pub fn append_redirection(_token: &str, target: &str) -> Result<(), String> {
+pub fn append_redirection(token: &str, target: &str) -> Result<(), String> {
     if target.starts_with('&') || target.starts_with(">(") {
         // &N 文件描述符、>(...) 进程替换：未实现
         Err("未实现的操作符".to_string())
     } else if target == "/dev/null" || target.eq_ignore_ascii_case("NUL") {
+        super::sh2rs(token)?;
         // 丢弃标准输出
         get_stdout_buffer();
         Ok(())
@@ -189,11 +192,12 @@ pub fn append_redirection(_token: &str, target: &str) -> Result<(), String> {
         // /dev、/proc、/sys、Windows 设备等特殊文件系统：不允许任意读写，未实现
         Err("未实现的操作符".to_string())
     } else if is_regular_file_path(target) {
+        super::sh2rs(token)?;
         // 普通文件路径：追加或新建
         let mut f = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open(target)
+            .open(super::to_path(target))
             .map_err(|e| e.to_string())?;
         f.write_all(get_stdout_buffer().as_bytes())
             .map_err(|e| e.to_string())
@@ -205,11 +209,12 @@ pub fn append_redirection(_token: &str, target: &str) -> Result<(), String> {
 
 /// 错误重定向符号
 /// 穷举可跟类型：普通文件路径（含 /dev、/proc、/sys 下文件）/ &N 文件描述符 / /dev/null / >(...) 进程替换（后两者未实现）
-pub fn error_redirection(_token: &str, target: &str) -> Result<(), String> {
+pub fn error_redirection(token: &str, target: &str) -> Result<(), String> {
     if target.starts_with('&') || target.starts_with(">(") {
         // &N 文件描述符、>(...) 进程替换：未实现
         Err("未实现的操作符".to_string())
     } else if target == "/dev/null" || target.eq_ignore_ascii_case("NUL") {
+        super::sh2rs(token).map_err(|e|{set_stderr_buffer(&e);e}).ok();
         // 丢弃标准错误
         get_stderr_buffer();
         Ok(())
@@ -217,10 +222,41 @@ pub fn error_redirection(_token: &str, target: &str) -> Result<(), String> {
         // /dev、/proc、/sys、Windows 设备等特殊文件系统：不允许任意读写，未实现
         Err("未实现的操作符".to_string())
     } else if is_regular_file_path(target) {
+        super::sh2rs(token).map_err(|e|{set_stderr_buffer(&e);e}).ok();
         // 普通文件路径：覆盖或新建
-        std::fs::write(target, get_stderr_buffer()).map_err(|e| e.to_string())
+        std::fs::write(super::to_path(target), get_stderr_buffer()).map_err(|e| e.to_string())
     } else {
         // 其它未穷举到的类型 → 未实现
+        Err("未实现的操作符".to_string())
+    }
+}
+
+/// 错误追加重定向符号 (2>>)
+/// 穷举可跟类型：普通文件路径（含 /dev、/proc、/sys 下文件）/ &N 文件描述符 / /dev/null / >(...) 进程替换（后两者未实现）
+pub fn error_append_redirection(token: &str, target: &str) -> Result<(), String> {
+    if target.starts_with('&') || target.starts_with(">(") {
+        // &N 文件描述符、>(...) 进程替换：未实现
+        Err("未实现的操作符".to_string())
+    } else if target == "/dev/null" || target.eq_ignore_ascii_case("NUL") {
+        super::sh2rs(token).map_err(|e|{set_stderr_buffer(&e);e}).ok();
+        // 丢弃标准错误
+        get_stderr_buffer();
+        Ok(())
+    } else if is_special_fs_path(target) {
+        // /dev、/proc、/sys、Windows 设备等特殊文件系统：不允许任意读写，未实现
+        Err("未实现的操作符".to_string())
+    } else if is_regular_file_path(target) {
+        super::sh2rs(token).map_err(|e|{set_stderr_buffer(&e);e}).ok();
+        // 普通文件路径：追加或新建
+        let mut f = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(super::to_path(target))
+            .map_err(|e| e.to_string())?;
+        f.write_all(get_stderr_buffer().as_bytes())
+            .map_err(|e| e.to_string())
+    } else {
+        // 其它未穷举到的类型（目录、非法路径等）→ 未实现
         Err("未实现的操作符".to_string())
     }
 }

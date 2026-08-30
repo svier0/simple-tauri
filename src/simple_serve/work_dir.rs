@@ -23,4 +23,5 @@ pub fn get_work_dir(ver: Option<&str>) -> String {
     crate::simple_tray::resource_dir(&rule.replace("<ver>", &v))
         .to_string_lossy()
         .into_owned()
+        .replace(std::path::MAIN_SEPARATOR_STR,"/")
 }

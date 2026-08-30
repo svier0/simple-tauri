@@ -31,7 +31,26 @@ pub fn sh2rs(input: &str) -> Result<(), String> {
         return Err(format!("unsupported command: {input}"));
     }
 
-    // 判断重定向操作符
+    // 判断重定向操作符：找到最后一个重定向符号
+    if let Some((op_idx, op)) = parts
+        .iter()
+        .enumerate()
+        .rev()
+        .find(|(_, t)| matches!(t.as_str(), "<" | ">" | ">>" | "2>" | "2>>"))
+    {
+        let target = parts
+            .get(op_idx + 1)
+            .ok_or_else(|| format!("重定向缺少目标: {}", op))?;
+        let left = parts[..op_idx].join(" ");
+        return match op.as_str() {
+            "<"   => in_redirection(&left, target),
+            ">"   => out_redirection(&left, target),
+            ">>"  => append_redirection(&left, target),
+            "2>"  => error_redirection(&left, target),
+            "2>>" => error_append_redirection(&left, target),
+            _ => unreachable!(),
+        };
+    }
 
     // 分流 执行具体命令
     match parts[0].as_str() {

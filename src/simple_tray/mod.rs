@@ -58,7 +58,7 @@ pub fn resource_dir(sub: &str) -> std::path::PathBuf {
     if sub.is_empty() {
         base.clone()
     } else {
-        base.join(sub)
+        base.join(sub.replace("/",std::path::MAIN_SEPARATOR_STR))
     }
 }
 
