@@ -1,5 +1,6 @@
 
 use super::unzip_remote;
+use crate::utils::sh2rs::sh2rs;
 
 use std::env::consts::{ARCH, OS};
 
@@ -35,8 +36,11 @@ pub fn ensure_node(ver: &str,dir: &str) -> Result<(), String> {
 	);
 	let url = format!("https://nodejs.org/dist/v{ver}/{filename}");
 	// 下载并解压
+    sh2rs!("cd {}",crate::simple_tray::resource_dir("").to_string_lossy()).ok();
     unzip_remote(&url,dir,&extract_dir)?;
-    crate::utils::sh2rs!("mkdir -p {}/npm-cache",dir).ok();
+    sh2rs!("mkdir -p {}/bin",dir).ok();
+    sh2rs!("mkdir -p {}/cache",dir).ok();
+    sh2rs!("cd -").ok();
     Ok(())
 }
 

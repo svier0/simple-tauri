@@ -1,3 +1,6 @@
+pub use simple_tauri_macros::sh2rs;
+pub use simple_tauri_macros::try_quote;
+
 mod operator;
 mod cd;
 mod sh;
@@ -25,6 +28,8 @@ pub use cp::*;
 pub use mv::*;
 
 pub fn sh2rs(input: &str) -> Result<(), String> {
+    eprintln!("debug: sh2rs: {input}");
+
     let parts: Vec<String> = shlex::split(input).ok_or("unterminated quote")?;
 
     if parts.is_empty() {
@@ -41,14 +46,14 @@ pub fn sh2rs(input: &str) -> Result<(), String> {
         let target = parts
             .get(op_idx + 1)
             .ok_or_else(|| format!("重定向缺少目标: {}", op))?;
-        let left = parts[..op_idx].join(" ");
+        let left = parts[..op_idx].iter().map(|t| if t.contains(' ') { try_quote(t) } else { t.to_string() }).collect::<Vec<_>>().join(" ");
         return match op.as_str() {
             "<"   => in_redirection(&left, target),
             ">"   => out_redirection(&left, target),
             ">>"  => append_redirection(&left, target),
             "2>"  => error_redirection(&left, target),
             "2>>" => error_append_redirection(&left, target),
-            _ => unreachable!(),
+            _     => unreachable!(),
         };
     }
 
@@ -114,4 +119,10 @@ pub fn sh2rs(input: &str) -> Result<(), String> {
         }
         _ => Err(format!("unsupported command: {}", parts[0])),
     }
+}
+
+pub fn try_quote(input: &str) -> String {
+    shlex::try_quote(input)
+        .unwrap_or_default()
+        .to_string()
 }

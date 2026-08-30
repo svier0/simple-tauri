@@ -76,3 +76,9 @@ pub fn set_start_cmd(input: TokenStream) -> TokenStream {
 pub fn sh2rs(input: TokenStream) -> TokenStream {
     utils::sh2rs_impl(input)
 }
+
+/// 简化 try_quote 调用：try_quote!("wget url") 或 try_quote!("wget -O {} {}", fname, url)
+#[proc_macro]
+pub fn try_quote(input: TokenStream) -> TokenStream {
+    utils::try_quote_impl(input)
+}
