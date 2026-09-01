@@ -13,10 +13,16 @@ pub fn sh(script: &str) -> Result<(), String> {
                 let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
                 let tmp_file = std::env::temp_dir().join(format!("tmp_sh2rs_sh_{}.bat", ts));
                 bat_script = tmp_file.to_string_lossy().to_string().replace('\\', "/");
-                super::sh2rs!("echo {} > {}",super::try_quote!("{}",script),bat_script)?;
+                let script_utf8 = format!("chcp 65001 >nul\r\n{}", script);
+                super::sh2rs!("echo {} > {}",super::try_quote!("{}",script_utf8),bat_script)?;
             }
+            let cmd_str = if bat_script.is_empty() {
+                format!("chcp 65001 >nul && {}", script)
+            } else {
+                bat_script.clone()
+            };
             let r = std::process::Command::new("cmd")
-                .args(["/C", if bat_script.is_empty() {script}else{&bat_script}])
+                .args(["/C", &cmd_str])
                 .current_dir(dir)
                 .creation_flags(0x0800_0000)
                 .stdout(std::process::Stdio::piped())

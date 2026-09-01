@@ -28,8 +28,6 @@ pub use cp::*;
 pub use mv::*;
 
 pub fn sh2rs(input: &str) -> Result<(), String> {
-    eprintln!("debug: sh2rs: {input}");
-
     let parts: Vec<String> = shlex::split(input).ok_or("unterminated quote")?;
 
     if parts.is_empty() {
