@@ -40,11 +40,6 @@ pub fn sh(script: &str) -> Result<(), String> {
 
     super::set_stdout_buffer(&format!("{}",String::from_utf8_lossy(&out.stdout)));
 
-    let err = String::from_utf8_lossy(&out.stderr);
-    if !err.is_empty() {
-        return Err(err.to_string());
-    }
-
     if !out.status.success() {
         let code = out.status.code()
             .map(|n| format!("exit code {n}"))

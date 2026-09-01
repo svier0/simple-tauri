@@ -82,14 +82,14 @@ pub fn get_node_cmd(cmd:&str,node_dir: &str) -> String {
 	let cmd_pre = indoc! {r#"
 		@echo off
 		set "NODE_HOME=<NODE_HOME>"
-		set "npm_config_userconfig=%NODE_HOME%/node_modules/npm"
+		set "npm_config_userconfig=%NODE_HOME%/node_modules/npm/.npmrc"
 		set "PATH=%NODE_HOME%;%NODE_HOME%/bin;"
 	"#}.replace("<NODE_HOME>",&crate::simple_tray::resource_dir(node_dir).to_string_lossy().replace("\\","/"));
 	#[cfg(not(windows))]
 	let cmd_pre = indoc! {r#"
 		#!/bin/bash
 		NODE_HOME=<NODE_HOME>
-		npm_config_userconfig=$NODE_HOME/node_modules/npm
+		npm_config_userconfig=$NODE_HOME/node_modules/npm/.npmrc
 		PATH=$NODE_HOME:$NODE_HOME/bin"
 	"#}.replace("<NODE_HOME>",&crate::simple_tray::resource_dir(node_dir).to_string_lossy().replace("\\","/"));
 	let cmd = format!("{}\n{}",cmd_pre,cmd);
