@@ -42,6 +42,14 @@ pub fn ensure_node(ver: &str,node_dir: &str) -> Result<(), String> {
     super::unzip_remote(&url,node_dir,&extract_dir)?;
     sh2rs!("mkdir -p {}/bin",node_dir).ok();
     sh2rs!("mkdir -p {}/cache",node_dir).ok();
+    let node_dir = crate::simple_tray::resource_dir(node_dir).to_string_lossy().replace("\\","/");
+    sh2rs!("echo {} > {}"
+    	,try_quote!("prefix={}/bin\ncache={}/cache\n{}\n{}",
+    		node_dir,
+    		node_dir,
+    		"loglevel=error",
+    		"enabled-https-notices=false")
+    	,format!("{node_dir}/node_modules/npm/.npmrc")).ok();
     sh2rs!("cd -").ok();
     Ok(())
 }
