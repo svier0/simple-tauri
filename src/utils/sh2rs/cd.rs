@@ -3,7 +3,8 @@
 pub fn cd(dir: &str) -> Result<(), String> {
     let path = super::to_path(dir);
     if dir=="-" {
-        super::set_work_dir(&super::get_work_dir_stack()[0].to_string());
+        let last = super::get_work_dir_stack()[1].to_string();
+        super::set_work_dir(&last);
         Ok(())
     }else if !path.exists() {
         Err("目录不存在".to_string())
