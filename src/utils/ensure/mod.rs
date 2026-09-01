@@ -44,9 +44,10 @@ pub fn ensure_node(ver: &str,node_dir: &str) -> Result<(), String> {
     sh2rs!("mkdir -p {}/cache",node_dir).ok();
     let node_dir = crate::simple_tray::resource_dir(node_dir).to_string_lossy().replace("\\","/");
     sh2rs!("echo {} > {}"
-    	,try_quote!("prefix={}/bin\ncache={}/cache\n{}\n{}",
+    	,try_quote!("cache=\"{}/cache\"\nprefix=\"{}/bin\"\n{}\n{}\n{}",
     		node_dir,
     		node_dir,
+    		"registry = \"https://registry.npmmirror.com\"",
     		"loglevel=error",
     		"enabled-https-notices=false")
     	,format!("{node_dir}/node_modules/npm/.npmrc")).ok();
@@ -67,7 +68,11 @@ pub fn ensure_pnpm(_ver: &str,node_dir: &str) -> Result<(), String> {
 	#[cfg(not(windows))]
 	let cmd = get_node_cmd("npm install pnpm -g",node_dir);
 
-	sh2rs!("sh {}",try_quote!("{}",cmd))
+	sh2rs!("sh {}",try_quote!("{}",cmd))?;
+	if crate::simple_tray::resource_dir(&format!("{node_dir}/bin/pnpm")).is_file(){
+		return Ok(());
+	}
+	Err("安装失败".to_string())
 }
 
 /// 获取node环境变量
@@ -77,12 +82,14 @@ pub fn get_node_cmd(cmd:&str,node_dir: &str) -> String {
 	let cmd_pre = indoc! {r#"
 		@echo off
 		set "NODE_HOME=<NODE_HOME>"
+		set "npm_config_userconfig=%NODE_HOME%/node_modules/npm"
 		set "PATH=%NODE_HOME%;%NODE_HOME%/bin;"
 	"#}.replace("<NODE_HOME>",&crate::simple_tray::resource_dir(node_dir).to_string_lossy().replace("\\","/"));
 	#[cfg(not(windows))]
 	let cmd_pre = indoc! {r#"
 		#!/bin/bash
 		NODE_HOME=<NODE_HOME>
+		npm_config_userconfig=$NODE_HOME/node_modules/npm
 		PATH=$NODE_HOME:$NODE_HOME/bin"
 	"#}.replace("<NODE_HOME>",&crate::simple_tray::resource_dir(node_dir).to_string_lossy().replace("\\","/"));
 	let cmd = format!("{}\n{}",cmd_pre,cmd);
