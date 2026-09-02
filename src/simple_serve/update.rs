@@ -12,7 +12,7 @@ static PKG_NAME: OnceLock<String> = OnceLock::new();
 /// 自动更新
 static AUTO_UPDATE: AtomicBool = AtomicBool::new(false);
 /// 下载更新回调
-static ENSURE_SERVER: OnceLock<fn(&str,&str) -> Result<(), String>> = OnceLock::new();
+static ENSURE_SERVER: OnceLock<Box<dyn Fn(&str,&str) -> Result<(), String> + Send + Sync>> = OnceLock::new();
 /// 解析VER为下载地址的闭包
 static UPDATE_URL: OnceLock<fn(&str) -> String> = OnceLock::new();
 /// 下载包提取目录
@@ -38,8 +38,8 @@ pub fn set_download_url(update_url: fn(&str) -> String,extract_dir: &str) {
 
 /// 设置下载更新回调
 /// 不调用本函数则需要调用set_download_url以使用默认的ensure_server_default
-pub fn set_ensure_server(ensure_server: fn(&str,&str) -> Result<(), String>){
-    ENSURE_SERVER.set(ensure_server).unwrap();
+pub fn set_ensure_server(ensure_server: impl Fn(&str,&str) -> Result<(), String> + Send + Sync + 'static){
+    let _ = ENSURE_SERVER.set(Box::new(ensure_server));
 }
 
 /// 更新指定版本的服务
@@ -59,8 +59,8 @@ pub fn check_update(force: bool) -> Result<(), String> {
     let pkg_name = PKG_NAME.get().expect("包名称未设置");
     let auto_update = AUTO_UPDATE.load(Ordering::SeqCst) || force;
     let _ensure_server = match ENSURE_SERVER.get() {
-        Some(f) => *f,
-        None => ensure_server_default,
+        Some(f) => f.as_ref(),
+        None => &ensure_server_default,
     };
 
     let mut local_ver = check_local_ver();
