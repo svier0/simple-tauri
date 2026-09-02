@@ -19,12 +19,13 @@ pub(super) fn set_run_flag(flag: bool){
 /// 等待指定端口可以连接（服务启动成功标志）
 /// 最多等待 timeout（秒），期间每隔 interval（秒）探测一次
 /// 若服务器进程已提前退出，立即返回错误（不用等满超时）
-pub fn wait_port(port: u16) -> std::io::Result<()> {
+pub fn wait_port(port: i32) -> std::io::Result<()> {
     wait_port_timeout(port, 15, 0.3)
 }
 
 /// 等待指定端口可以连接，自定义超时/间隔
-pub fn wait_port_timeout(port: u16, timeout_secs: u64, interval: f64) -> std::io::Result<()> {
+pub fn wait_port_timeout(port: i32, timeout_secs: u64, interval: f64) -> std::io::Result<()> {
+    let port = port.try_into().unwrap();
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
     loop {
         if !is_running() {
