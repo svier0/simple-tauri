@@ -1,5 +1,6 @@
 extern crate self as simple_tauri;
 
+pub mod config;
 pub mod simple_serve;
 pub mod simple_tray;
 pub mod utils;

@@ -55,8 +55,6 @@ fn ensure_server_default(ver: &str,dir: &str) -> Result<(), String> {
 /// 如果本地没有版本或者自动更新开启，则触发更新
 /// 未调用 set_ensure_server 时需先调用 set_download_url 以使用默认更新逻辑
 pub fn check_update(force: bool) -> Result<(), String> {
-    let pkg_type = PKG_TYPE.get().expect("包类型未设置");
-    let pkg_name = PKG_NAME.get().expect("包名称未设置");
     let auto_update = AUTO_UPDATE.load(Ordering::SeqCst) || force;
     let _ensure_server = match ENSURE_SERVER.get() {
         Some(f) => f.as_ref(),
@@ -65,10 +63,7 @@ pub fn check_update(force: bool) -> Result<(), String> {
 
     let mut local_ver = check_local_ver();
     if local_ver=="" || auto_update {
-        let latest_ver = crate::utils::get_latest_ver(pkg_type,pkg_name);
-        if latest_ver=="" {
-            return Err(format!("检查版本号失败"));
-        }
+        let latest_ver = get_latest_ver()?;
         if local_ver!=latest_ver {
             let _ = _ensure_server(&latest_ver,
                 &get_work_dir(Some(latest_ver.as_str()))
@@ -78,4 +73,15 @@ pub fn check_update(force: bool) -> Result<(), String> {
     }
     set_local_ver(&local_ver);
     Ok(())
+}
+
+/// 获取最新版本号
+pub fn get_latest_ver() -> Result<String, String> {
+    let pkg_type = PKG_TYPE.get().expect("包类型未设置");
+    let pkg_name = PKG_NAME.get().expect("包名称未设置");
+    let latest_ver = crate::utils::get_latest_ver(pkg_type,pkg_name);
+    if latest_ver=="" {
+        return Err(format!("检查版本号失败"));
+    }
+    Ok(latest_ver)
 }

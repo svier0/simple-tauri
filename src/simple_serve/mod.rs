@@ -33,6 +33,7 @@ pub use action::{
 pub use update::{
     set_pkg,
     enable_auto_update,
+    get_latest_ver,
     check_update,
     set_download_url,
     set_ensure_server};
