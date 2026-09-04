@@ -146,17 +146,30 @@ pub fn set_ipc_cmds_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStr
             .unwrap_or_else(|e| panic!("set_ipc_cmds!: {module}.rs 解析失败: {e}"));
         let mut names = Vec::new();
         for item in &file.items {
-            if let syn::Item::Fn(f) = item {
-                let is_cmd = f.attrs.iter().any(|a| {
-                    a.path()
-                        .segments
-                        .last()
-                        .map(|s| s.ident == "command")
-                        .unwrap_or(false)
-                });
-                if is_cmd {
-                    names.push(f.sig.ident.clone());
+            match item {
+                // #[tauri::command] fn xxx() {}
+                syn::Item::Fn(f) => {
+                    let is_cmd = f.attrs.iter().any(|a| {
+                        a.path()
+                            .segments
+                            .last()
+                            .map(|s| s.ident == "command")
+                            .unwrap_or(false)
+                    });
+                    if is_cmd {
+                        names.push(f.sig.ident.clone());
+                    }
                 }
+                // pub use path::{a, b, c};
+                syn::Item::Use(u) => {
+                    if matches!(&u.vis, syn::Visibility::Public(_)) {
+                        if let syn::UseTree::Path(p) = &u.tree {
+                            let prefix = syn::Path::from(p.ident.clone());
+                            collect_use_paths(&p.tree, &prefix, &mut all_paths);
+                        }
+                    }
+                }
+                _ => {}
             }
         }
 
@@ -184,6 +197,28 @@ pub fn set_ipc_cmds_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStr
         ::simple_tauri::simple_tray::set_ipc_cmds(tauri::generate_handler![#(#all_paths),*]);
     }
     .into()
+}
+
+/// 递归收集 pub use path::{a, b, c} 中的完整路径
+fn collect_use_paths(tree: &syn::UseTree, prefix: &syn::Path, paths: &mut Vec<proc_macro2::TokenStream>) {
+    match tree {
+        syn::UseTree::Path(p) => {
+            let mut new_prefix = prefix.clone();
+            new_prefix.segments.push(p.ident.clone().into());
+            collect_use_paths(&p.tree, &new_prefix, paths);
+        }
+        syn::UseTree::Name(n) => {
+            let mut full = prefix.clone();
+            full.segments.push(n.ident.clone().into());
+            paths.push(quote!(#full));
+        }
+        syn::UseTree::Group(g) => {
+            for item in &g.items {
+                collect_use_paths(item, prefix, paths);
+            }
+        }
+        _ => {}
+    }
 }
 
 pub fn set_tray_menu_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
