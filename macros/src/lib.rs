@@ -4,6 +4,7 @@ mod simple_tray;
 mod simple_serve;
 mod mod_;
 mod utils;
+mod ipc_result;
 
 /// 编译期解析 JSON 窗口列表，生成静态 WindowConfig 数组
 ///
@@ -81,4 +82,13 @@ pub fn sh2rs(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn try_quote(input: TokenStream) -> TokenStream {
     utils::try_quote_impl(input)
+}
+
+/// IPC 统一返回结构
+/// ipc_result!(0, "", data)       → 成功
+/// ipc_result!(1, "错误", null)   → 失败
+/// ipc_result!(result)            → Result<T,String> 自动匹配
+#[proc_macro]
+pub fn ipc_result(input: TokenStream) -> TokenStream {
+    ipc_result::ipc_result_impl(input)
 }

@@ -9,6 +9,7 @@ pub use simple_tauri_macros::set_tray_menu;
 pub use simple_tauri_macros::hooks;
 pub use simple_tauri_macros::mutex;
 pub use simple_tauri_macros::run;
+pub use simple_tauri_macros::ipc_result;
 
 use std::sync::{OnceLock};
 use std::sync::atomic::{AtomicBool, Ordering};
