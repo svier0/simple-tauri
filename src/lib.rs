@@ -4,6 +4,7 @@ pub mod config;
 pub mod simple_serve;
 pub mod simple_tray;
 pub mod utils;
+pub mod ipc_default;
 
 #[cfg(windows)]
 pub fn check_mutex(name: &str) -> bool {
