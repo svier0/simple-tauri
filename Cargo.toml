@@ -24,6 +24,8 @@ zip = "2"
 tokio = { version = "1", features = ["time", "sync"] }
 shlex = "2.0"
 indoc = "2"
+uuid = { version = "1", features = ["v4"] }
+nanoid = "0.4"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_UI_WindowsAndMessaging"] }
