@@ -1,6 +1,37 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
+pub use simple_tauri_macros::{get, get_or};
+
+/// 从 serde_json::Value 提取类型化配置值
+pub trait ConfigDefault<'a>: Sized {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self>;
+}
+
+impl<'a> ConfigDefault<'a> for i64 {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_i64() }
+}
+
+impl<'a> ConfigDefault<'a> for u64 {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_u64() }
+}
+
+impl<'a> ConfigDefault<'a> for f64 {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_f64() }
+}
+
+impl<'a> ConfigDefault<'a> for bool {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_bool() }
+}
+
+impl<'a> ConfigDefault<'a> for String {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_str().map(|s| s.to_string()) }
+}
+
+impl<'a> ConfigDefault<'a> for &'a str {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_str() }
+}
+
 /// 库内置兜底默认配置（JSONC）
 const FALLBACK: &str = r#"
 {
@@ -68,34 +99,9 @@ pub fn load(path: impl AsRef<Path>) -> Result<(), String> {
     Ok(())
 }
 
-/// 获取指定键的配置值
-pub fn get(key: &str) -> serde_json::Value {
-    config().lock().unwrap().get(key).cloned().unwrap_or(serde_json::Value::Null)
-}
-
-/// 获取指定键的 i64 值
-pub fn get_i64(key: &str) -> Option<i64> {
-    get(key).as_i64()
-}
-
-/// 获取指定键的 u64 值
-pub fn get_u64(key: &str) -> Option<u64> {
-    get(key).as_u64()
-}
-
-/// 获取指定键的 f64 值
-pub fn get_f64(key: &str) -> Option<f64> {
-    get(key).as_f64()
-}
-
-/// 获取指定键的 bool 值
-pub fn get_bool(key: &str) -> Option<bool> {
-    get(key).as_bool()
-}
-
-/// 获取指定键的字符串值
-pub fn get_str(key: &str) -> Option<String> {
-    get(key).as_str().map(|s| s.to_string())
+/// 获取指定键的配置值，无则返回默认值
+pub fn get(key: &str, default: impl Into<serde_json::Value>) -> serde_json::Value {
+    config().lock().unwrap().get(key).cloned().unwrap_or(default.into())
 }
 
 /// 获取所有配置键名

@@ -41,7 +41,7 @@ pub fn ipc_server_latest_ver() -> serde_json::Value {
 /// 更新服务端
 #[tauri::command]
 pub fn ipc_server_update() -> serde_json::Value {
-    ipc_result!(simple_serve::check_update(config::get_bool("auto_update").expect("")))
+    ipc_result!(simple_serve::check_update(config::get_or!("auto_update", false)))
 }
 
 // ------- ------- 配置读写 ------- -------

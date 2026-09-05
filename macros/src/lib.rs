@@ -5,6 +5,7 @@ mod simple_serve;
 mod mod_;
 mod utils;
 mod ipc_result;
+mod config;
 
 /// 编译期解析 JSON 窗口列表，生成静态 WindowConfig 数组
 ///
@@ -91,4 +92,17 @@ pub fn try_quote(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn ipc_result(input: TokenStream) -> TokenStream {
     ipc_result::ipc_result_impl(input)
+}
+
+/// 获取配置值: get!("key") → serde_json::Value
+#[proc_macro]
+pub fn get(input: TokenStream) -> TokenStream {
+    config::get_impl(input)
+}
+
+/// 获取类型化配置值: get_or!("age", -1) → i64
+/// 根据默认值类型自动选择 as_i64/as_u64/as_f64/as_bool/as_str
+#[proc_macro]
+pub fn get_or(input: TokenStream) -> TokenStream {
+    config::get_or_impl(input)
 }

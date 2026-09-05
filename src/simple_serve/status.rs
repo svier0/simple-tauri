@@ -52,6 +52,7 @@ pub fn wait_port(port: impl IntoPort) -> std::io::Result<()> {
 
 /// 等待指定端口可以连接，自定义超时/间隔
 pub fn wait_port_timeout(port: impl IntoPort, timeout_secs: u64, interval: f64) -> std::io::Result<()> {
+    let port = port.into_port();
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
     loop {
         if !is_running() {
