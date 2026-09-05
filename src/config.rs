@@ -3,7 +3,6 @@ use std::sync::{Mutex, OnceLock};
 
 pub use simple_tauri_macros::{get, get_or};
 
-/// 从 serde_json::Value 提取类型化配置值
 pub trait ConfigDefault<'a>: Sized {
     fn from_value(v: &'a serde_json::Value) -> Option<Self>;
 }
