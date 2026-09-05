@@ -23,6 +23,7 @@ pub use spawn::{
     spawn_in_dir};
 pub use status::{
     is_running,
+    IntoPort,
     wait_port,
     wait_port_timeout};
 pub use action::{

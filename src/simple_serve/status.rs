@@ -3,6 +3,33 @@ use super::action::{child};
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
+/// 任意数字/字符串 → u16 转换 trait
+pub trait IntoPort {
+    fn into_port(self) -> u16;
+}
+
+impl IntoPort for u16 {
+    fn into_port(self) -> u16 { self }
+}
+impl IntoPort for i32 {
+    fn into_port(self) -> u16 { self as u16 }
+}
+impl IntoPort for u32 {
+    fn into_port(self) -> u16 { self as u16 }
+}
+impl IntoPort for i64 {
+    fn into_port(self) -> u16 { self as u16 }
+}
+impl IntoPort for u64 {
+    fn into_port(self) -> u16 { self as u16 }
+}
+impl IntoPort for &str {
+    fn into_port(self) -> u16 { self.parse().unwrap_or(0) }
+}
+impl IntoPort for String {
+    fn into_port(self) -> u16 { self.parse().unwrap_or(0) }
+}
+
 /// 运行状态
 static RUNNING: AtomicBool = AtomicBool::new(false);
 
@@ -19,13 +46,12 @@ pub(super) fn set_run_flag(flag: bool){
 /// 等待指定端口可以连接（服务启动成功标志）
 /// 最多等待 timeout（秒），期间每隔 interval（秒）探测一次
 /// 若服务器进程已提前退出，立即返回错误（不用等满超时）
-pub fn wait_port(port: i32) -> std::io::Result<()> {
+pub fn wait_port(port: impl IntoPort) -> std::io::Result<()> {
     wait_port_timeout(port, 15, 0.3)
 }
 
 /// 等待指定端口可以连接，自定义超时/间隔
-pub fn wait_port_timeout(port: i32, timeout_secs: u64, interval: f64) -> std::io::Result<()> {
-    let port = port.try_into().unwrap();
+pub fn wait_port_timeout(port: impl IntoPort, timeout_secs: u64, interval: f64) -> std::io::Result<()> {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
     loop {
         if !is_running() {

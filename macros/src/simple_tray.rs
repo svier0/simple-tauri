@@ -247,7 +247,7 @@ pub fn set_tray_menu_impl(input: proc_macro::TokenStream) -> proc_macro::TokenSt
         } else {
             Some(
                 syn::parse_str(cb_str)
-                    .expect("set_tray_menu!: 回调必须是函数路径字符串, 如 \"show_setting\""),
+                    .expect("set_tray_menu!: 回调必须是函数名称字符串"),
             )
         };
 
