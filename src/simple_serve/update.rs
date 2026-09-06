@@ -77,8 +77,8 @@ pub fn check_update(force: bool) -> Result<(), String> {
 
 /// 获取最新版本号
 pub fn get_latest_ver() -> Result<String, String> {
-    let pkg_type = PKG_TYPE.get().expect("包类型未设置");
-    let pkg_name = PKG_NAME.get().expect("包名称未设置");
+    let pkg_type = PKG_TYPE.get().ok_or("包类型未设置")?;
+    let pkg_name = PKG_NAME.get().ok_or("包名称未设置")?;
     let latest_ver = crate::utils::get_latest_ver(pkg_type,pkg_name);
     if latest_ver=="" {
         return Err(format!("检查版本号失败"));

@@ -28,7 +28,7 @@ pub fn sh(script: &str) -> Result<(), String> {
                 .stdout(std::process::Stdio::piped())
                 .stderr(std::process::Stdio::piped())
                 .output()
-                .expect("failed to execute");
+                .map_err(|e| format!("failed to execute: {e}"))?;
             if !bat_script.is_empty() { super::sh2rs!("rm {}",bat_script).ok(); }
             r
         }
@@ -40,7 +40,7 @@ pub fn sh(script: &str) -> Result<(), String> {
                 .stdout(std::process::Stdio::piped())
                 .stderr(std::process::Stdio::piped())
                 .output()
-                .expect("failed to execute")
+                .map_err(|e| format!("failed to execute: {e}"))?
         }
     };
 
