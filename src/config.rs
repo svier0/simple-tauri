@@ -86,8 +86,8 @@ fn config() -> &'static Mutex<serde_json::Value> {
     })
 }
 
-fn raw() -> Option<&'static Mutex<String>> {
-    RAW.get()
+fn raw() -> &'static Mutex<String> {
+    RAW.get_or_init(|| Mutex::new("{}".to_string()))
 }
 
 /// 设置默认配置（JSONC 格式字符串），会覆盖当前配置
@@ -111,13 +111,16 @@ pub fn load(path: impl AsRef<Path>) -> Result<(), String> {
     } else {
         crate::simple_tray::resource_dir("").join(p)
     };
+    let _ = PATH.set(full_path.clone());
+    if !full_path.exists() {
+        return Err("配置文件不存在".to_string());
+    }
     let content = std::fs::read_to_string(&full_path)
         .map_err(|e| format!("读取配置文件失败: {e}"))?;
     let user: serde_json::Value = json5::from_str(&content)
         .map_err(|e| format!("解析配置文件失败: {e}"))?;
     let mut cfg = config().lock().unwrap();
     *cfg = merge(&cfg, &user);
-    let _ = PATH.set(full_path);
     let _ = RAW.set(Mutex::new(content));
     Ok(())
 }
@@ -150,10 +153,27 @@ pub fn set(key: &str, value: impl Into<serde_json::Value>) -> Result<(), String>
             map.insert(key.to_string(), value.clone());
         }
     }
-    let r = raw().ok_or("未加载配置文件，无法回写")?;
+    let r = raw();
     let mut text = r.lock().unwrap();
-    replace_value(&mut text, key, &value);
+    if !replace_value(&mut text, key, &value) {
+        let new_val = value_to_string(&value);
+        let entry = format!("\"{}\":{}", key, new_val);
+        if let Some(pos) = text.rfind('}') {
+            let has_content = text[..pos].chars().any(|c| !c.is_whitespace());
+            if has_content {
+                text.insert_str(pos, &format!("{},\n  ", entry));
+            } else {
+                text.insert_str(pos, &format!("  {}", entry));
+            }
+        }
+    }
     let path = PATH.get().ok_or("未加载配置文件，无法回写")?;
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("创建配置目录失败: {e}"))?;
+        }
+    }
     std::fs::write(path, text.as_str())
         .map_err(|e| format!("写入配置文件失败: {e}"))
 }
@@ -172,8 +192,8 @@ fn merge(a: &serde_json::Value, b: &serde_json::Value) -> serde_json::Value {
     }
 }
 
-/// 在原始文本中替换指定 key 的值（保留注释和格式）
-fn replace_value(text: &mut String, key: &str, value: &serde_json::Value) {
+/// 在原始文本中替换指定 key 的值（保留注释和格式），返回是否找到并替换
+fn replace_value(text: &mut String, key: &str, value: &serde_json::Value) -> bool {
     let new_val = value_to_string(value);
     for line in text.lines() {
         let trimmed = line.trim();
@@ -187,12 +207,13 @@ fn replace_value(text: &mut String, key: &str, value: &serde_json::Value) {
                     if let Some(start) = byte_start {
                         let byte_end = start + old_val.len();
                         text.replace_range(start..byte_end, &new_val);
-                        return;
+                        return true;
                     }
                 }
             }
         }
     }
+    false
 }
 
 /// 值转 JSON 字符串
