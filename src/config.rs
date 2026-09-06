@@ -11,8 +11,32 @@ impl<'a> ConfigDefault<'a> for i64 {
     fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_i64() }
 }
 
+impl<'a> ConfigDefault<'a> for i32 {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_i64().map(|n| n as i32) }
+}
+
+impl<'a> ConfigDefault<'a> for i16 {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_i64().map(|n| n as i16) }
+}
+
+impl<'a> ConfigDefault<'a> for i8 {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_i64().map(|n| n as i8) }
+}
+
 impl<'a> ConfigDefault<'a> for u64 {
     fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_u64() }
+}
+
+impl<'a> ConfigDefault<'a> for u32 {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_u64().map(|n| n as u32) }
+}
+
+impl<'a> ConfigDefault<'a> for u16 {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_u64().map(|n| n as u16) }
+}
+
+impl<'a> ConfigDefault<'a> for u8 {
+    fn from_value(v: &'a serde_json::Value) -> Option<Self> { v.as_u64().map(|n| n as u8) }
 }
 
 impl<'a> ConfigDefault<'a> for f64 {
