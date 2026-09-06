@@ -32,7 +32,7 @@ pub fn get_or_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let expanded = quote! {
         {
             let v = ::simple_tauri::config::get(#key, serde_json::Value::Null);
-            <_ as ::simple_tauri::config::ConfigDefault>::from_value(&v).unwrap_or(#default_tokens)
+            <_ as ::simple_tauri::config::ConfigDefault>::from_value(&v).unwrap_or(#default_tokens).to_owned()
         }
     };
     expanded.into()
