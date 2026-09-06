@@ -12,8 +12,10 @@ pub use simple_tauri_macros::ipc_result;
 
 mod app_handler;
 mod window_list;
+mod tray_hook;
 pub use app_handler::*;
 pub use window_list::*;
+pub use tray_hook::*;
 
 use std::sync::{OnceLock};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -28,9 +30,6 @@ static LIGHT_ITEM: OnceLock<CheckMenuItem<tauri::Wry>> = OnceLock::new();
 static TOGGLE_ITEM: OnceLock<MenuItem<tauri::Wry>> = OnceLock::new();
 static EXTRA_ITEMS: OnceLock<Vec<(&'static str, &'static str, Option<fn()>)>> = OnceLock::new();
 static IPC_HANDLER: OnceLock<Box<dyn Fn(tauri::ipc::Invoke) -> bool + Send + Sync>> = OnceLock::new();
-static HOOK_BEFORE_TRAY: OnceLock<Option<fn() -> Result<(), String>>> = OnceLock::new();
-static HOOK_AFTER_TRAY: OnceLock<Option<fn() -> Result<(), String>>> = OnceLock::new();
-static HOOK_QUIT: OnceLock<Option<fn() -> Result<(), String>>> = OnceLock::new();
 
 /// 返回资源目录绝对路径（windows：exe 所在目录，非 windows：app 资源目录）
 /// sub 非空时拼接子路径返回
@@ -85,18 +84,14 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             // hook（含 wait_port 阻塞）放后台线程，成功后再调度回主线程建托盘
             // setup 立即返回，窗口/事件循环不阻塞；托盘等服务器起来才出
             std::thread::spawn(move || {
-                if let Some(f) = HOOK_BEFORE_TRAY.get().and_then(|h| *h) {
-                    if let Err(e) = f() {
-                        fatal(&handle, &e);
-                    }
+                if let Err(e) = trigger_tray_before() {
+                    fatal(&handle, &e);
                 }
                 // 回主线程建托盘（Tauri UI 必须在主线程），建好后执行 on_tray_after
                 let h2 = handle.clone();
                 let _ = handle.run_on_main_thread(move || {
                     create_tray(&h2);
-                    if let Some(g) = HOOK_AFTER_TRAY.get().and_then(|h| *h) {
-                        let _ = g();
-                    }
+                    trigger_tray_after();
                 });
             });
 
@@ -212,9 +207,7 @@ fn create_tray(app: &tauri::AppHandle) {
             }
             "quit" => {
                 QUIT_FLAG.store(true, Ordering::SeqCst);
-                if let Some(f) = HOOK_QUIT.get().and_then(|h| *h) {
-                    let _ = f();
-                }
+                trigger_quit();
                 app.exit(0);
             }
             id => {
@@ -237,17 +230,6 @@ pub fn set_ipc_cmds(
     commands: impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static,
 ) {
     let _ = IPC_HANDLER.set(Box::new(commands));
-}
-
-/// 注册托盘生命周期钩子（编译期宏 hooks! 生成后调用此函数）
-pub fn set_hooks(
-    on_tray_before: Option<fn() -> Result<(), String>>,
-    on_tray_after: Option<fn() -> Result<(), String>>,
-    on_quit: Option<fn() -> Result<(), String>>,
-) {
-    let _ = HOOK_BEFORE_TRAY.set(on_tray_before);
-    let _ = HOOK_AFTER_TRAY.set(on_tray_after);
-    let _ = HOOK_QUIT.set(on_quit);
 }
 
 /// 设置托盘菜单（编译期宏 set_tray_menu! 生成静态数组后调用此函数）
