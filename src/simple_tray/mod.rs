@@ -117,6 +117,27 @@ fn refresh_toggle_text() {
     }
 }
 
+/// 切换轻量模式
+/// 0: 切换 1：开启 2：关闭
+fn toggle_light_mode(flag: i32) {
+    let is_light = match flag {
+        1 => true,
+        2 => false,
+        _ => !LIGHT_MODE.load(Ordering::SeqCst),
+    };
+    LIGHT_MODE.store(is_light, Ordering::SeqCst);
+    if let Some(item) = LIGHT_ITEM.get() {
+        let _ = item.set_checked(is_light);
+    }
+    if is_light {
+        let app = app().expect("app_handler 未初始化");
+        if let Some(w) = app.get_webview_window("main") {
+            LIGHT_CLOSE.store(true, Ordering::SeqCst);
+            let _ = w.close();
+        }
+    }
+}
+
 /// 创建托盘（必须在主线程调用，由 hook 成功后调度回主线程执行）
 fn create_tray(app: &tauri::AppHandle) {
     // 声明托盘菜单项
@@ -126,14 +147,9 @@ fn create_tray(app: &tauri::AppHandle) {
     let _ = LIGHT_ITEM.set(light.clone());
     let quit = MenuItemBuilder::with_id("quit", "退出").build(app).unwrap();
 
-    // 静默启动：配置开启则只留托盘不建窗口
-    let silent = true;
-    LIGHT_MODE.store(silent, Ordering::SeqCst);
-    if let Some(item) = LIGHT_ITEM.get() {
-        let _ = item.set_checked(silent);
-    }
-    if !silent {
-        show_window("main");
+    // 静默启动：默认开启轻量模式
+    if crate::config::get_or!("silent_launch",false) {
+        toggle_light_mode(1);
     }
 
     // 创建托盘菜单
@@ -191,19 +207,7 @@ fn create_tray(app: &tauri::AppHandle) {
                 }
             }
             "light" => {
-                let is_light = !LIGHT_MODE.load(Ordering::SeqCst);
-                LIGHT_MODE.store(is_light, Ordering::SeqCst);
-                if let Some(item) = LIGHT_ITEM.get() {
-                    let _ = item.set_checked(is_light);
-                }
-                if is_light {
-                    if let Some(w) = app.get_webview_window("main") {
-                        LIGHT_CLOSE.store(true, Ordering::SeqCst);
-                        let _ = w.close();
-                    }
-                } else {
-                    show_window("main");
-                }
+                toggle_light_mode(0);
             }
             "quit" => {
                 QUIT_FLAG.store(true, Ordering::SeqCst);
