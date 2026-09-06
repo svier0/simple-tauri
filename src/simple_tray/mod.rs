@@ -7,12 +7,13 @@ pub use simple_tauri_macros::set_window_list;
 pub use simple_tauri_macros::set_ipc_cmds;
 pub use simple_tauri_macros::set_tray_menu;
 pub use simple_tauri_macros::hooks;
-pub use simple_tauri_macros::mutex;
 pub use simple_tauri_macros::run;
 pub use simple_tauri_macros::ipc_result;
 
 mod app_handler;
+mod window_list;
 pub use app_handler::*;
+pub use window_list::*;
 
 use std::sync::{OnceLock};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -238,24 +239,6 @@ pub fn set_ipc_cmds(
     let _ = IPC_HANDLER.set(Box::new(commands));
 }
 
-/// 窗口配置
-#[derive(Clone, Copy)]
-pub struct WindowConfig {
-    pub id: &'static str,
-    pub title: &'static str,
-    pub url: &'static str,
-    pub width: f64,
-    pub height: f64,
-    pub decorations: bool,
-}
-
-static WND_LIST: OnceLock<&'static [WindowConfig]> = OnceLock::new();
-
-/// 设置窗口列表（编译期宏 set_window_list! 生成静态数组后调用此函数）
-pub fn set_window_list(wnd_list: &'static [WindowConfig]) {
-    let _ = WND_LIST.set(wnd_list);
-}
-
 /// 注册托盘生命周期钩子（编译期宏 hooks! 生成后调用此函数）
 pub fn set_hooks(
     on_tray_before: Option<fn() -> Result<(), String>>,
@@ -274,15 +257,7 @@ pub fn set_tray_menu(menu: &'static [(&'static str, &'static str, Option<fn()>)]
 
 /// 创建主窗口：先隐藏，等 webview 页面加载完成后（on_page_load）再显示，避免白屏闪烁。
 fn build_window(app: &tauri::AppHandle, wndid: &str) -> tauri::Result<()> {
-    let wnd = WND_LIST
-        .get()
-        .and_then(|list| list.iter().find(|w| w.id == wndid))
-        .ok_or_else(|| {
-            tauri::Error::Io(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                format!("window {wndid} 未在窗口列表中声明"),
-            ))
-        })?;
+    let wnd = window_list_find(wndid)?;
 
     let url = if wnd.url.starts_with("http://") || wnd.url.starts_with("https://") {
         tauri::WebviewUrl::External(wnd.url.parse().map_err(tauri::Error::InvalidUrl)?)

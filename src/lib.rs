@@ -1,5 +1,6 @@
 extern crate self as simple_tauri;
 
+pub use simple_tauri_macros::mutex;
 pub mod config;
 pub mod simple_serve;
 pub mod simple_tray;
