@@ -11,6 +11,9 @@ pub use simple_tauri_macros::mutex;
 pub use simple_tauri_macros::run;
 pub use simple_tauri_macros::ipc_result;
 
+mod app_handler;
+pub use app_handler::*;
+
 use std::sync::{OnceLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::menu::{CheckMenuItem, MenuItem, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
@@ -27,14 +30,6 @@ static IPC_HANDLER: OnceLock<Box<dyn Fn(tauri::ipc::Invoke) -> bool + Send + Syn
 static HOOK_BEFORE_TRAY: OnceLock<Option<fn() -> Result<(), String>>> = OnceLock::new();
 static HOOK_AFTER_TRAY: OnceLock<Option<fn() -> Result<(), String>>> = OnceLock::new();
 static HOOK_QUIT: OnceLock<Option<fn() -> Result<(), String>>> = OnceLock::new();
-static MAIN_THREAD_ID: OnceLock<std::thread::ThreadId> = OnceLock::new();
-/// 全局 AppHandle（setup 时缓存，全局可用）
-static APP: OnceLock<tauri::AppHandle> = OnceLock::new();
-
-/// 获取全局 AppHandle（未初始化时返回 None）
-pub fn app() -> Option<&'static tauri::AppHandle> {
-    APP.get()
-}
 
 /// 返回资源目录绝对路径（windows：exe 所在目录，非 windows：app 资源目录）
 /// sub 非空时拼接子路径返回
@@ -63,14 +58,6 @@ pub fn resource_dir(sub: &str) -> std::path::PathBuf {
     }
 }
 
-/// 判断当前是否主线程（setup 在 run 开始时记录）
-fn is_main_thread() -> bool {
-    match MAIN_THREAD_ID.get() {
-        Some(main) => std::thread::current().id() == *main,
-        None => true, // 未记录时保守假定在主线程
-    }
-}
-
 #[cfg(windows)]
 pub fn run(context: tauri::Context<tauri::Wry>) {
     let _ = EXTRA_ITEMS.get_or_init(|| vec![]);
@@ -90,8 +77,8 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             }
         })
         .setup(move |app| {
-            let _ = MAIN_THREAD_ID.set(std::thread::current().id());
-            let _ = APP.set(app.handle().clone());
+            main_thread_set(std::thread::current().id());
+            app_set(app.handle().clone());
             let handle = app.handle().clone();
 
             // hook（含 wait_port 阻塞）放后台线程，成功后再调度回主线程建托盘
