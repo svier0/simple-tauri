@@ -195,25 +195,31 @@ fn merge(a: &serde_json::Value, b: &serde_json::Value) -> serde_json::Value {
 /// 在原始文本中替换指定 key 的值（保留注释和格式），返回是否找到并替换
 fn replace_value(text: &mut String, key: &str, value: &serde_json::Value) -> bool {
     let new_val = value_to_string(value);
-    for line in text.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with(&format!("\"{key}\"")) {
-            if let Some(colon_pos) = trimmed.find(':') {
-                let after_colon = &trimmed[colon_pos + 1..].trim_start();
-                let val_end = find_value_end(after_colon);
-                if val_end > 0 {
-                    let old_val = &after_colon[..val_end];
-                    let byte_start = text.find(old_val);
-                    if let Some(start) = byte_start {
-                        let byte_end = start + old_val.len();
-                        text.replace_range(start..byte_end, &new_val);
-                        return true;
-                    }
+    let key_pattern = format!("\"{}\"", key);
+    let mut search_from = 0;
+    loop {
+        let Some(key_pos) = text[search_from..].find(&key_pattern) else {
+            return false;
+        };
+        let abs_key_pos = search_from + key_pos;
+        let line_end = text[abs_key_pos..].find('\n').map(|i| abs_key_pos + i).unwrap_or(text.len());
+        let line_text = &text[abs_key_pos..line_end];
+        if let Some(colon_pos) = line_text.find(':') {
+            let after_colon = line_text[colon_pos + 1..].trim_start();
+            let val_end = find_value_end(after_colon);
+            if val_end > 0 {
+                let old_val = &after_colon[..val_end];
+                let search_start = abs_key_pos + colon_pos + 1;
+                if let Some(val_pos) = text[search_start..line_end].find(old_val) {
+                    let byte_start = search_start + val_pos;
+                    let byte_end = byte_start + old_val.len();
+                    text.replace_range(byte_start..byte_end, &new_val);
+                    return true;
                 }
             }
         }
+        search_from = line_end + 1;
     }
-    false
 }
 
 /// 值转 JSON 字符串
