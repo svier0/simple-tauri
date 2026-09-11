@@ -11,6 +11,7 @@ mod spawn;
 mod status;
 mod action;
 mod update;
+mod log;
 
 pub use work_dir::{
     set_work_dir,
@@ -38,3 +39,7 @@ pub use update::{
     check_update,
     set_download_url,
     set_ensure_server};
+pub use log::{
+    set_log_path,
+    get_log_path,
+    get_log};

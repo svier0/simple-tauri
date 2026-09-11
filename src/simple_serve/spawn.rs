@@ -1,7 +1,8 @@
 
 use std::path::Path;
-use std::process::{Child, Command};
-use std::sync::{OnceLock};
+use std::process::{Child, Command, Stdio};
+use std::sync::OnceLock;
+use std::fs::File;
 
 #[cfg(windows)]
 use windows_sys::Win32::Foundation::HANDLE;
@@ -55,11 +56,16 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 #[cfg(windows)]
 pub fn spawn_in_dir(dir: &Path, exec_cmd: &str) -> std::io::Result<Child> {
+    let log_path = super::get_log_path();
+    let log_file = File::create(&log_path)?;
+
     // 隐藏控制台弹框
     let mut cmd = Command::new("cmd");
     cmd.args(["/C", exec_cmd])
         .current_dir(dir)
-        .creation_flags(CREATE_NO_WINDOW);
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdout(Stdio::from(log_file.try_clone()?))
+        .stderr(Stdio::from(log_file));
     let child = cmd.spawn()?;
 
     // 绑定到 Job Object：进程无法二次绑定已绑定的 job，先探测当前 job（如果已绑定则跳过）
@@ -75,9 +81,14 @@ pub fn spawn_in_dir(dir: &Path, exec_cmd: &str) -> std::io::Result<Child> {
 
 #[cfg(not(windows))]
 pub fn spawn_in_dir(dir: &Path, exec_cmd: &str) -> std::io::Result<Child> {
+    let log_path = super::get_log_path();
+    let log_file = File::create(&log_path)?;
+
     Command::new("sh")
         .arg("-c")
         .arg(exec_cmd)
         .current_dir(dir)
+        .stdout(Stdio::from(log_file.try_clone()?))
+        .stderr(Stdio::from(log_file))
         .spawn()
 }
