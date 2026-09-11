@@ -74,9 +74,30 @@ static DEFAULT_RAW: OnceLock<String> = OnceLock::new();
 /// 用户配置文件原始文本（保留注释和格式）
 static RAW: OnceLock<Mutex<String>> = OnceLock::new();
 /// 用户配置文件路径（用于回写）
-static PATH: OnceLock<PathBuf> = OnceLock::new();
+static PATH: Mutex<Option<PathBuf>> = Mutex::new(None);
 /// 合并后的最终配置
 static CONFIG: OnceLock<Mutex<serde_json::Value>> = OnceLock::new();
+
+fn set_conf_path(p: impl AsRef<Path>) {
+    let p = p.as_ref();
+    let full_path = if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        crate::simple_tray::resource_dir("").join(p)
+    };
+    *PATH.lock().unwrap() = Some(full_path);
+}
+
+fn get_conf_path() -> PathBuf {
+    PATH.lock()
+        .unwrap()
+        .clone()
+        .unwrap_or_else(|| {
+            let default = PathBuf::from("config.json");
+            set_conf_path(&default);
+            default
+        })
+}
 
 fn config() -> &'static Mutex<serde_json::Value> {
     CONFIG.get_or_init(|| {
@@ -106,12 +127,8 @@ pub fn get_default_raw() -> &'static str {
 /// 加载用户配置文件（JSONC/JSON5 格式），合并到当前配置（用户覆盖默认）
 pub fn load(path: impl AsRef<Path>) -> Result<(), String> {
     let p = path.as_ref();
-    let full_path = if p.is_absolute() {
-        p.to_path_buf()
-    } else {
-        crate::simple_tray::resource_dir("").join(p)
-    };
-    let _ = PATH.set(full_path.clone());
+    set_conf_path(p);
+    let full_path = get_conf_path();
     if !full_path.exists() {
         return Err("配置文件不存在".to_string());
     }
@@ -121,7 +138,7 @@ pub fn load(path: impl AsRef<Path>) -> Result<(), String> {
         .map_err(|e| format!("解析配置文件失败: {e}"))?;
     let mut cfg = config().lock().unwrap();
     *cfg = merge(&cfg, &user);
-    let _ = RAW.set(Mutex::new(content));
+    *raw().lock().unwrap() = content;
     Ok(())
 }
 
@@ -167,7 +184,7 @@ pub fn set(key: &str, value: impl Into<serde_json::Value>) -> Result<(), String>
             }
         }
     }
-    let path = PATH.get().ok_or("未加载配置文件，无法回写")?;
+    let path = get_conf_path();
     if let Some(parent) = path.parent() {
         if !parent.exists() {
             std::fs::create_dir_all(parent)
