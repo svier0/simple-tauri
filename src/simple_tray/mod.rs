@@ -75,21 +75,19 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
                 let _ = window.hide();
             }
         })
-        .setup(move |app| {
+        .setup(move |app_handle| {
             main_thread_set(std::thread::current().id());
-            app_set(app.handle().clone());
-            let handle = app.handle().clone();
+            app_set(app_handle.handle().clone());
 
             // hook（含 wait_port 阻塞）放后台线程，成功后再调度回主线程建托盘
             // setup 立即返回，窗口/事件循环不阻塞；托盘等服务器起来才出
             std::thread::spawn(move || {
                 if let Err(e) = trigger_tray_before() {
-                    fatal(&handle, &e);
+                    fatal(&e);
                 }
                 // 回主线程建托盘（Tauri UI 必须在主线程），建好后执行 on_tray_after
-                let h2 = handle.clone();
-                let _ = handle.run_on_main_thread(move || {
-                    create_tray(&h2);
+                let _ = app().run_on_main_thread(move || {
+                    create_tray();
                     trigger_tray_after();
                 });
             });
@@ -138,7 +136,8 @@ fn toggle_light_mode(flag: i32) {
 }
 
 /// 创建托盘（必须在主线程调用，由 hook 成功后调度回主线程执行）
-fn create_tray(app: &tauri::AppHandle) {
+fn create_tray() {
+    let app = app();
     // 声明托盘菜单项
     let toggle = MenuItemBuilder::with_id("toggle", "启动").build(app).unwrap();
     let _ = TOGGLE_ITEM.set(toggle.clone());
@@ -241,7 +240,8 @@ pub fn set_tray_menu(menu: &'static [(&'static str, &'static str, Option<fn()>)]
 }
 
 /// 创建主窗口：先隐藏，等 webview 页面加载完成后（on_page_load）再显示，避免白屏闪烁。
-fn build_window(app: &tauri::AppHandle, wndid: &str) -> tauri::Result<()> {
+fn build_window(wndid: &str) -> tauri::Result<()> {
+    let app = app();
     let wnd = window_list_find(wndid)?;
 
     let url = if wnd.url.starts_with("http://") || wnd.url.starts_with("https://") {
@@ -286,7 +286,7 @@ pub fn show_window(wndid: &str) {
         let _ = w.show();
         let _ = w.set_focus();
     } else {
-        let _ = build_window(app, wndid);
+        let _ = build_window(wndid);
     }
 }
 
@@ -327,7 +327,8 @@ struct TrayState {
 
 /// 弹致命错误框并退出进程
 #[cfg(windows)]
-fn fatal(app: &tauri::AppHandle, msg: &str) -> ! {
+fn fatal(msg: &str) -> ! {
+    let app = app();
     use std::os::windows::ffi::OsStrExt;
     let wide: Vec<u16> = std::ffi::OsStr::new(msg)
         .encode_wide()
@@ -351,7 +352,8 @@ fn fatal(app: &tauri::AppHandle, msg: &str) -> ! {
 }
 
 #[cfg(not(windows))]
-fn fatal(app: &tauri::AppHandle, msg: &str) -> ! {
+fn fatal(msg: &str) -> ! {
+    let app = app();
     eprintln!("fatal: {msg}");
     app.exit(1);
     std::process::exit(1);
