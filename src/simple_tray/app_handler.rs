@@ -6,9 +6,9 @@ static APP: OnceLock<tauri::AppHandle> = OnceLock::new();
 /// 主线程ID
 static MAIN_THREAD_ID: OnceLock<std::thread::ThreadId> = OnceLock::new();
 
-/// 获取全局 AppHandle（未初始化时返回 None）
-pub fn app() -> Option<&'static tauri::AppHandle> {
-    APP.get()
+/// 获取全局 AppHandle（未初始化时 panic）
+pub fn app() -> &'static tauri::AppHandle {
+    APP.get().expect("app_handler 未初始化")
 }
 
 /// 初始化全局 AppHandle

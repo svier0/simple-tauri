@@ -46,8 +46,7 @@ pub fn resource_dir(sub: &str) -> std::path::PathBuf {
         }
         #[cfg(not(windows))]
         {
-            app()
-                .and_then(|a| a.path().resource_dir().ok())
+            app().path().resource_dir().ok()
                 .unwrap_or_else(|| std::path::PathBuf::from("."))
         }
     });
@@ -130,7 +129,7 @@ fn toggle_light_mode(flag: i32) {
         let _ = item.set_checked(is_light);
     }
     if is_light {
-        let app = app().expect("app_handler 未初始化");
+        let app = app();
         if let Some(w) = app.get_webview_window("main") {
             LIGHT_CLOSE.store(true, Ordering::SeqCst);
             let _ = w.close();
@@ -271,7 +270,7 @@ fn build_window(app: &tauri::AppHandle, wndid: &str) -> tauri::Result<()> {
 /// 显示主窗口：主窗口未创建或已销毁则创建
 /// 可在任意线程调用：非主线程时自动调度回主线程执行（窗口 API 必须在主线程）
 pub fn show_window(wndid: &str) {
-    let Some(app) = app() else { return };
+    let app = app();
     if !is_main_thread() {
         let app_receiver = app.clone();
         let wndid = wndid.to_string();
@@ -294,7 +293,7 @@ pub fn show_window(wndid: &str) {
 /// 关闭（销毁）窗口：存在则关闭，不存在则忽略
 /// 可在任意线程调用：非主线程时自动调度回主线程执行（窗口 API 必须在主线程）
 pub fn close_window(wndid: &str) {
-    let Some(app) = app() else { return };
+    let app = app();
     if !is_main_thread() {
         let app_receiver = app.clone();
         let wndid = wndid.to_string();
@@ -309,7 +308,7 @@ pub fn close_window(wndid: &str) {
 /// 在指定窗口的 webview 里执行一段 JavaScript
 /// 可在任意线程调用：非主线程时自动调度回主线程执行（eval 必须在主线程）
 pub fn runjs(wndid: &str, script: &str) {
-    let Some(app) = app() else { return };
+    let app = app();
     if !is_main_thread() {
         let app_receiver = app.clone();
         let wndid = wndid.to_string();
