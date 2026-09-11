@@ -90,8 +90,8 @@ pub fn ipc_server_action(action: &str) -> serde_json::Value {
     }
 }
 
-/// 读取服务日志 TODO:
+/// 读取服务日志
 #[tauri::command]
-pub fn _ipc_server_logs() -> serde_json::Value {
-	ipc_result!(1,"未实现")
+pub fn ipc_server_logs() -> serde_json::Value {
+	ipc_result!(0,"",simple_serve::get_log())
 }
