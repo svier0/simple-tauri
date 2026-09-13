@@ -2,13 +2,15 @@
 use crate::simple_serve;
 use crate::config;
 use crate::simple_tray::ipc_result;
+use crate::simple_tray::app;
 
 // ------- ------- 本体版本与更新 ------- -------
 
-/// 获取本体版本号 TODO:
+/// 获取本体版本号
 #[tauri::command]
-pub fn _ipc_version() -> serde_json::Value {
-	ipc_result!(1,"未实现")
+pub fn ipc_version() -> serde_json::Value {
+    let r = app().package_info().version.to_string();
+    ipc_result!(0,"",r)
 }
 
 /// 获取最新版本号 TODO:

@@ -26,6 +26,7 @@ use tauri::{Manager, WebviewWindowBuilder};
 
 static QUIT_FLAG: AtomicBool = AtomicBool::new(false);
 static IPC_HANDLER: OnceLock<Box<dyn Fn(tauri::ipc::Invoke) -> bool + Send + Sync>> = OnceLock::new();
+static PRODUCT_NAME: OnceLock<String> = OnceLock::new();
 
 /// 返回资源目录绝对路径（windows：exe 所在目录，非 windows：app 资源目录）
 /// sub 非空时拼接子路径返回
@@ -53,8 +54,13 @@ pub fn resource_dir(sub: &str) -> std::path::PathBuf {
     }
 }
 
+pub fn product_name() -> String {
+    PRODUCT_NAME.get_or_init(|| String::from("")).clone()
+}
+
 #[cfg(windows)]
 pub fn run(context: tauri::Context<tauri::Wry>) {
+    let _ = PRODUCT_NAME.set(context.config().product_name.clone().unwrap_or_default());
     tauri::Builder::default()
         .invoke_handler(IPC_HANDLER.get_or_init(|| Box::new(|_| false)))
         .on_window_event(|window, event| {
