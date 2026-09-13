@@ -58,9 +58,13 @@ pub fn product_name() -> String {
     PRODUCT_NAME.get_or_init(|| String::from("")).clone()
 }
 
+pub fn set_product_name(product_name: String) {
+    let _ = PRODUCT_NAME.set(product_name);
+}
+
 #[cfg(windows)]
 pub fn run(context: tauri::Context<tauri::Wry>) {
-    let _ = PRODUCT_NAME.set(context.config().product_name.clone().unwrap_or_default());
+    set_product_name(context.config().product_name.clone().unwrap_or_default());
     tauri::Builder::default()
         .invoke_handler(IPC_HANDLER.get_or_init(|| Box::new(|_| false)))
         .on_window_event(|window, event| {
