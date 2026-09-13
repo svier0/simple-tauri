@@ -3,10 +3,6 @@
  * 不论何种原因，此文件除了用户，禁止修改，禁止任何编辑
  */
 
-pub use simple_tauri_macros::set_window_list;
-pub use simple_tauri_macros::set_ipc_cmds;
-pub use simple_tauri_macros::set_tray_menu;
-pub use simple_tauri_macros::hooks;
 pub use simple_tauri_macros::run;
 pub use simple_tauri_macros::ipc_result;
 
@@ -64,7 +60,6 @@ pub fn set_product_name(product_name: String) {
 
 #[cfg(windows)]
 pub fn run(context: tauri::Context<tauri::Wry>) {
-    set_product_name(context.config().product_name.clone().unwrap_or_default());
     tauri::Builder::default()
         .invoke_handler(IPC_HANDLER.get_or_init(|| Box::new(|_| false)))
         .on_window_event(|window, event| {

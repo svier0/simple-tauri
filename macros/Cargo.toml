@@ -1,6 +1,6 @@
 [package]
 name = "simple-tauri-macros"
-version = "0.3.0"
+version = "0.4.0"
 description = "compile-time JSON macros for simple-tauri: window list, tray menu, IPC commands, hooks, run"
 edition = "2021"
 license = "MIT"

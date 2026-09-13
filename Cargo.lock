@@ -3553,7 +3553,7 @@ checksum = "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea"
 
 [[package]]
 name = "simple-tauri"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "indoc",
  "json5",
@@ -3575,8 +3575,9 @@ dependencies = [
 
 [[package]]
 name = "simple-tauri-macros"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
+ "json5",
  "proc-macro2",
  "quote",
  "serde_json",
