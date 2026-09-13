@@ -12,23 +12,19 @@ pub use simple_tauri_macros::ipc_result;
 
 mod app_handler;
 mod window_list;
+mod tray_menu;
 mod tray_hook;
 pub use app_handler::*;
 pub use window_list::*;
+pub use tray_menu::*;
 pub use tray_hook::*;
 
 use std::sync::{OnceLock};
 use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::menu::{CheckMenuItem, MenuItem, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Manager, WebviewWindowBuilder};
 
 static QUIT_FLAG: AtomicBool = AtomicBool::new(false);
-static LIGHT_MODE: AtomicBool = AtomicBool::new(false);
-static LIGHT_CLOSE: AtomicBool = AtomicBool::new(false);
-static LIGHT_ITEM: OnceLock<CheckMenuItem<tauri::Wry>> = OnceLock::new();
-static TOGGLE_ITEM: OnceLock<MenuItem<tauri::Wry>> = OnceLock::new();
-static EXTRA_ITEMS: OnceLock<Vec<(&'static str, &'static str, Option<fn()>)>> = OnceLock::new();
 static IPC_HANDLER: OnceLock<Box<dyn Fn(tauri::ipc::Invoke) -> bool + Send + Sync>> = OnceLock::new();
 
 /// 返回资源目录绝对路径（windows：exe 所在目录，非 windows：app 资源目录）
@@ -59,15 +55,13 @@ pub fn resource_dir(sub: &str) -> std::path::PathBuf {
 
 #[cfg(windows)]
 pub fn run(context: tauri::Context<tauri::Wry>) {
-    let _ = EXTRA_ITEMS.get_or_init(|| vec![]);
-
     tauri::Builder::default()
         .invoke_handler(IPC_HANDLER.get_or_init(|| Box::new(|_| false)))
         .on_window_event(|window, event| {
             // 关闭窗口时
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 // 轻量模式下直接销毁窗口
-                if LIGHT_CLOSE.swap(false, Ordering::SeqCst) {
+                if tray_menu::light_close_off() {
                     return;
                 }
                 // 用户点关闭按钮或 close_window()：隐藏窗口，不退出
@@ -105,67 +99,12 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
         });
 }
 
-/// 依据 is_running() 真实状态刷新菜单按钮文本。
-fn refresh_toggle_text() {
-    let running = crate::simple_serve::is_running();
-    let text = if running { "停止" } else { "启动" }.to_string();
-    if let Some(item) = TOGGLE_ITEM.get() {
-        let _ = item.set_text(text);
-    }
-}
-
-/// 切换轻量模式
-/// 0: 切换 1：开启 2：关闭
-fn toggle_light_mode(flag: i32) {
-    let is_light = match flag {
-        1 => true,
-        2 => false,
-        _ => !LIGHT_MODE.load(Ordering::SeqCst),
-    };
-    LIGHT_MODE.store(is_light, Ordering::SeqCst);
-    if let Some(item) = LIGHT_ITEM.get() {
-        let _ = item.set_checked(is_light);
-    }
-    if is_light {
-        let app = app();
-        if let Some(w) = app.get_webview_window("main") {
-            LIGHT_CLOSE.store(true, Ordering::SeqCst);
-            let _ = w.close();
-        }
-    }
-}
-
 /// 创建托盘（必须在主线程调用，由 hook 成功后调度回主线程执行）
 fn create_tray() {
     let app = app();
-    // 声明托盘菜单项
-    let toggle = MenuItemBuilder::with_id("toggle", "启动").build(app).unwrap();
-    let _ = TOGGLE_ITEM.set(toggle.clone());
-    let light = CheckMenuItem::with_id(app, "light", "轻量模式", true, false, None::<&str>).unwrap();
-    let _ = LIGHT_ITEM.set(light.clone());
-    let quit = MenuItemBuilder::with_id("quit", "退出").build(app).unwrap();
-
-    // 静默启动：默认开启轻量模式
-    if crate::config::get_or!("silent_launch",false) {
-        toggle_light_mode(1);
-    }
 
     // 创建托盘菜单
-    let mut menu = MenuBuilder::new(app);
-    for &(id, label, _) in EXTRA_ITEMS.get().unwrap() {
-        if id=="" {
-            menu = menu.item(&PredefinedMenuItem::separator(app).unwrap());
-        }else if id=="toggle" {
-            menu = menu.item(&toggle);
-        }else if id=="light" {
-            menu = menu.item(&light);
-        }else{
-            menu = menu.item(&MenuItemBuilder::with_id(id, label).build(app).unwrap());
-        }
-    }
-    let menu = menu.item(&PredefinedMenuItem::separator(app).unwrap())
-        .item(&quit)
-        .build().unwrap();
+    let menu = tray_menu::build_tray_menu();
 
     // 创建托盘
     let tray = TrayIconBuilder::new()
@@ -188,43 +127,23 @@ fn create_tray() {
                 ..
             } = event
             {
-                refresh_toggle_text();
-                // if let Some(menu) = _tray.get_menu() {
-                    // _tray.with_inner_tray_icon(|inner| { let _ = inner.popup_menu(&menu); });
-                // }
+                // 弹出前刷新菜单
+                tray_menu::refresh_menu();
             }
         })
         .menu(&menu)
-        .on_menu_event(move |app, event| match event.id.as_ref() {
-            "show" => show_window("main"),
-            "toggle" => {
-                if crate::simple_serve::is_running() {
-                    let _ = crate::simple_serve::stop();
-                } else {
-                    let _ = crate::simple_serve::start();
-                }
-            }
-            "light" => {
-                toggle_light_mode(0);
-            }
-            "quit" => {
-                QUIT_FLAG.store(true, Ordering::SeqCst);
-                trigger_quit();
-                app.exit(0);
-            }
-            id => {
-                if let Some((_, _, Some(cb))) = EXTRA_ITEMS
-                    .get().unwrap().iter()
-                    .find(|(i, _, _)| *i == id)
-                {
-                    cb();
-                }
-            }
-        })
+        .on_menu_event(move |_app, event| tray_menu::trigger_tray_menu_cb(event.id.as_ref()) )
         .build(app).unwrap();
 
     // 托盘必须保持存活，否则应用会在托盘图标创建后立即退出
     app.manage(TrayState { _tray: tray });
+}
+
+/// 退出
+pub fn app_quit(){
+    QUIT_FLAG.store(true, Ordering::SeqCst);
+    trigger_quit();
+    app().exit(0);
 }
 
 /// 设置ipc命令
@@ -232,11 +151,6 @@ pub fn set_ipc_cmds(
     commands: impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static,
 ) {
     let _ = IPC_HANDLER.set(Box::new(commands));
-}
-
-/// 设置托盘菜单（编译期宏 set_tray_menu! 生成静态数组后调用此函数）
-pub fn set_tray_menu(menu: &'static [(&'static str, &'static str, Option<fn()>)]) {
-    let _ = EXTRA_ITEMS.set(menu.iter().copied().collect());
 }
 
 /// 创建主窗口：先隐藏，等 webview 页面加载完成后（on_page_load）再显示，避免白屏闪烁。
@@ -277,11 +191,9 @@ pub fn show_window(wndid: &str) {
         let _ = app_receiver.run_on_main_thread(move || show_window(&wndid));
         return;
     }
-    if LIGHT_MODE.swap(false, Ordering::SeqCst) {
-        if let Some(item) = LIGHT_ITEM.get() {
-            let _ = item.set_checked(false);
-        }
-    }
+    // 关闭轻量模式
+    tray_menu::toggle_light_mode(2);
+
     if let Some(w) = app.get_webview_window(wndid) {
         let _ = w.show();
         let _ = w.set_focus();
