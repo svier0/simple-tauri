@@ -145,8 +145,12 @@ pub fn run_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             let id = row.first().and_then(|v| v.as_str()).unwrap_or_default();
             let title = row.get(1).and_then(|v| v.as_str()).unwrap_or_default();
             
-            // url: null 时用默认值
+            // url: null 或空字符串时用默认值
             let url_token = match row.get(2) {
+                Some(serde_json::Value::String(s)) if s.is_empty() => {
+                    let default_url = format!("{id}.html");
+                    quote!(#default_url)
+                }
                 Some(serde_json::Value::Null) => {
                     let default_url = format!("{id}.html");
                     quote!(#default_url)
