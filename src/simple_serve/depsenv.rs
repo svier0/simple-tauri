@@ -28,6 +28,19 @@ pub(super) fn ensure_depsenv() -> Result<(),String>{
         } else if dep == "pnpm" || dep.starts_with("pnpm@") {
             let ver = dep.strip_prefix("pnpm@").unwrap_or("");
             crate::utils::ensure_pnpm(ver)?;
+        } else if dep == "python" || dep.starts_with("python@") {
+            let ver = dep.strip_prefix("python@").unwrap_or("");
+            #[cfg(windows)]
+            sh2rs!("sh where python").ok();
+            #[cfg(not(windows))]
+            sh2rs!("sh which python").ok();
+            let mut py_dir = get_stdout_buffer();
+            if !py_dir.is_empty() {
+                py_dir = std::path::Path::new(&py_dir).parent()
+                    .map(|p| p.to_string_lossy().replace("\\","/"))
+                    .unwrap_or_default();
+            }
+            crate::utils::ensure_python(ver, &py_dir)?;
         }
     }
     Ok(())
