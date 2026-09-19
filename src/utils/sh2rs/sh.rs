@@ -37,6 +37,7 @@ pub fn sh(script: &str) -> Result<(), String> {
                 .arg("-c")
                 .arg(script)
                 .current_dir(dir)
+                .stdin(std::process::Stdio::null())
                 .stdout(std::process::Stdio::piped())
                 .stderr(std::process::Stdio::piped())
                 .output()
