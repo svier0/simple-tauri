@@ -12,6 +12,7 @@ mod status;
 mod action;
 mod update;
 mod log;
+mod depsenv;
 
 pub use work_dir::{
     set_work_dir,
@@ -34,8 +35,8 @@ pub use action::{
     child};
 pub use update::{
     set_pkg,
-    enable_auto_update,
     get_latest_ver,
+    auto_check_update,
     check_update,
     set_download_url,
     set_ensure_server};
@@ -43,3 +44,5 @@ pub use log::{
     set_log_path,
     get_log_path,
     get_log};
+pub use depsenv::{
+    set_depsenv};

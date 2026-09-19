@@ -57,7 +57,7 @@ fn server_update(force: bool) -> Result<(), String> {
     if local_ver=="" || auto_update {
         let latest_ver = get_latest_ver()?;
         if local_ver!=latest_ver {
-            //
+            super::depsenv::ensure_depsenv()?;
             let _ = _ensure_server(&latest_ver,
                 &get_work_dir(Some(latest_ver.as_str()))
             ).map_err(|e| format!("服务器(v{latest_ver})安装失败: {e}"))?;
