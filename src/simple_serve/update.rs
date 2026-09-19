@@ -2,15 +2,12 @@
 use super::local_ver::{check_local_ver,set_local_ver};
 use super::work_dir::{get_work_dir};
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 
 /// 包类型
 static PKG_TYPE: OnceLock<String> = OnceLock::new();
 /// 包名称
 static PKG_NAME: OnceLock<String> = OnceLock::new();
-/// 自动更新
-static AUTO_UPDATE: AtomicBool = AtomicBool::new(false);
 /// 下载更新回调
 static ENSURE_SERVER: OnceLock<Box<dyn Fn(&str,&str) -> Result<(), String> + Send + Sync>> = OnceLock::new();
 /// 解析VER为下载地址的闭包
@@ -23,11 +20,6 @@ static EXTRACT_DIR: OnceLock<String> = OnceLock::new();
 pub fn set_pkg(pkg_type: &str,pkg_name: &str){
     let _ = PKG_TYPE.set(pkg_type.to_string());
     let _ = PKG_NAME.set(pkg_name.to_string());
-}
-
-/// 开启自动更新
-pub fn enable_auto_update(){
-    AUTO_UPDATE.store(true, Ordering::SeqCst);
 }
 
 /// 设置解析ver为下载url的回调
@@ -53,9 +45,9 @@ fn ensure_server_default(ver: &str,dir: &str) -> Result<(), String> {
 
 /// 检查更新
 /// 如果本地没有版本或者自动更新开启，则触发更新
-/// 未调用 set_ensure_server 时需先调用 set_download_url 以使用默认更新逻辑
-pub fn check_update(force: bool) -> Result<(), String> {
-    let auto_update = AUTO_UPDATE.load(Ordering::SeqCst) || force;
+/// 必需先调用 set_ensure_server 或 set_download_url
+fn server_update(force: bool) -> Result<(), String> {
+    let auto_update = crate::config::get_or!("auto_update",false) || force;
     let _ensure_server = match ENSURE_SERVER.get() {
         Some(f) => f.as_ref(),
         None => &ensure_server_default,
@@ -65,6 +57,7 @@ pub fn check_update(force: bool) -> Result<(), String> {
     if local_ver=="" || auto_update {
         let latest_ver = get_latest_ver()?;
         if local_ver!=latest_ver {
+            //
             let _ = _ensure_server(&latest_ver,
                 &get_work_dir(Some(latest_ver.as_str()))
             ).map_err(|e| format!("服务器(v{latest_ver})安装失败: {e}"))?;
@@ -73,6 +66,14 @@ pub fn check_update(force: bool) -> Result<(), String> {
     }
     set_local_ver(&local_ver);
     Ok(())
+}
+/// 自动检查更新 启动时调用一次
+pub fn auto_check_update() -> Result<(), String> {
+    server_update(false)
+}
+/// 用户主动触发检查更新
+pub fn check_update() -> Result<(), String> {
+    server_update(true)
 }
 
 /// 获取最新版本号
