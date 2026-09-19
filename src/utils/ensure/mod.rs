@@ -152,3 +152,23 @@ pub fn write_env_script(cmd:&str,file:&str) -> Result<(), String> {
 	sh2rs!("echo {} > {}",try_quote!("{}", cmd),file)?;
 	Ok(())
 }
+
+/// 弹出命令行窗口
+pub fn show_env_cmd(cmd:&str) {
+	let cmd = simple_tauri::utils::get_env_cmd(cmd);
+
+    // 启动cmd窗口并执行字符串变量cmd的代码 然后cmd窗口停留等待用户输入
+    #[cfg(windows)]
+    {
+        let tmp = std::env::temp_dir().join("_simple_tauri_cmd.cmd");
+        std::fs::write(&tmp, format!("{cmd}\r\npause")).ok();
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "cmd", "/K", tmp.to_string_lossy().as_ref()])
+            .spawn().ok();
+    }
+    #[cfg(not(windows))]
+    std::process::Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .spawn().ok();
+}
