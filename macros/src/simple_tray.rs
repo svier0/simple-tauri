@@ -262,7 +262,18 @@ pub fn run_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         });
     }
 
-    // 9. run
+    // 9. server.package (set_pkg)
+    if let Some(server) = json.get("server") {
+        if let Some(package) = server.get("package") {
+            let pkg_type = package.get("type").and_then(|v| v.as_str()).unwrap_or("");
+            let pkg_name = package.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            tokens.push(quote! {
+                ::simple_tauri::simple_serve::set_pkg(#pkg_type, #pkg_name);
+            });
+        }
+    }
+
+    // 10. run
     tokens.push(quote! {
         ::simple_tauri::simple_tray::run(__context);
     });
