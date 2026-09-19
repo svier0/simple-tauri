@@ -1,6 +1,36 @@
 use proc_macro2::Literal;
 use quote::quote;
 
+/// 判断值是否以 "rust:" 开头，是则返回 Rust 表达式，否则返回 None
+fn parse_rust_expr(s: &str) -> Option<&str> {
+    s.strip_prefix("rust:")
+}
+
+/// 处理 JSON 值：如果是字符串且以 "rust:" 开头，返回 Rust 表达式 token；否则按原始类型处理
+fn value_to_token(v: &serde_json::Value) -> proc_macro2::TokenStream {
+    match v {
+        serde_json::Value::String(s) => {
+            if let Some(expr) = parse_rust_expr(s) {
+                expr.parse().expect("run!: rust: 表达式解析失败")
+            } else {
+                quote!(#s)
+            }
+        }
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                quote!(#i)
+            } else if let Some(f) = n.as_f64() {
+                quote!(#f)
+            } else {
+                quote!(0)
+            }
+        }
+        serde_json::Value::Bool(b) => quote!(#b),
+        serde_json::Value::Null => quote!(""),
+        _ => quote!(""),
+    }
+}
+
 pub fn run_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     if !input.is_empty() {
         panic!("run!: 不接受任何参数, 直接写 run!()");
@@ -111,30 +141,60 @@ pub fn run_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         let mut window_items = Vec::new();
         for row in window_list {
             let row = row.as_array().expect("run!: window_list 每项必须是数组");
+            
             let id = row.first().and_then(|v| v.as_str()).unwrap_or_default();
             let title = row.get(1).and_then(|v| v.as_str()).unwrap_or_default();
-            let url = row.get(2).and_then(|v| v.as_str()).unwrap_or_default();
-            let width = row.get(3).and_then(|v| v.as_f64()).unwrap_or(800.0);
-            let height = row.get(4).and_then(|v| v.as_f64()).unwrap_or(540.0);
-            let decorations = row.get(5).and_then(|v| v.as_bool()).unwrap_or(true);
+            
+            // url: null 时用默认值
+            let url_token = match row.get(2) {
+                Some(serde_json::Value::Null) => {
+                    let default_url = format!("{id}.html");
+                    quote!(#default_url)
+                }
+                Some(v) => value_to_token(v),
+                None => {
+                    let default_url = format!("{id}.html");
+                    quote!(#default_url)
+                }
+            };
+            
+            // width: null 时用默认值 800.0
+            let width_token = match row.get(3) {
+                Some(serde_json::Value::Null) => quote!(800.0),
+                Some(v) => value_to_token(v),
+                None => quote!(800.0),
+            };
+            
+            // height: null 时用默认值 540.0
+            let height_token = match row.get(4) {
+                Some(serde_json::Value::Null) => quote!(540.0),
+                Some(v) => value_to_token(v),
+                None => quote!(540.0),
+            };
+            
+            // decorations: null 时用默认值 true
+            let decorations_token = match row.get(5) {
+                Some(serde_json::Value::Null) => quote!(true),
+                Some(v) => value_to_token(v),
+                None => quote!(true),
+            };
 
             let id = Literal::string(id);
             let title = Literal::string(title);
-            let url = Literal::string(url);
 
             window_items.push(quote! {
                 ::simple_tauri::simple_tray::WindowConfig {
-                    id: #id,
-                    title: #title,
-                    url: #url,
-                    width: #width,
-                    height: #height,
-                    decorations: #decorations,
+                    id: #id.to_string(),
+                    title: #title.to_string(),
+                    url: #url_token.to_string(),
+                    width: #width_token as f64,
+                    height: #height_token as f64,
+                    decorations: #decorations_token as bool,
                 }
             });
         }
         tokens.push(quote! {
-            ::simple_tauri::simple_tray::set_window_list(&[#(#window_items),*]);
+            ::simple_tauri::simple_tray::set_window_list(vec![#(#window_items),*]);
         });
     }
 

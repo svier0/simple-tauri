@@ -8,12 +8,13 @@ use std::env::consts::{ARCH, OS};
 /// 安装node
 pub fn ensure_node(ver: &str,node_dir: &str) -> Result<(), String> {
 	let node_dir = if node_dir.is_empty() { "server/nodejs" } else { node_dir };
-	let ver = if ver.is_empty() { "26.7.0" } else { ver };
 
 	if crate::simple_tray::resource_dir(&format!("{node_dir}/node.exe")).is_file()
 		|| crate::simple_tray::resource_dir(&format!("{node_dir}/node")).is_file(){
 		return Ok(());
 	}
+
+	let ver = if ver.is_empty() { "26.7.0" } else { ver };
 	let extract_dir = format!(
 		"node-v{ver}-{}-{}",
 		match OS {

@@ -1,21 +1,21 @@
 
 use std::sync::OnceLock;
 
-static WND_LIST: OnceLock<&'static [WindowConfig]> = OnceLock::new();
+static WND_LIST: OnceLock<Vec<WindowConfig>> = OnceLock::new();
 
 /// 窗口配置
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct WindowConfig {
-    pub id: &'static str,
-    pub title: &'static str,
-    pub url: &'static str,
+    pub id: String,
+    pub title: String,
+    pub url: String,
     pub width: f64,
     pub height: f64,
     pub decorations: bool,
 }
 
-/// 设置窗口列表（编译期宏 set_window_list! 生成静态数组后调用此函数）
-pub fn set_window_list(wnd_list: &'static [WindowConfig]) {
+/// 设置窗口列表
+pub fn set_window_list(wnd_list: Vec<WindowConfig>) {
     let _ = WND_LIST.set(wnd_list);
 }
 

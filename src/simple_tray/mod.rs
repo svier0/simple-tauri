@@ -166,11 +166,11 @@ fn build_window(wndid: &str) -> tauri::Result<()> {
     let url = if wnd.url.starts_with("http://") || wnd.url.starts_with("https://") {
         tauri::WebviewUrl::External(wnd.url.parse().map_err(tauri::Error::InvalidUrl)?)
     } else {
-        tauri::WebviewUrl::App(wnd.url.into())
+        tauri::WebviewUrl::App(wnd.url.clone().into())
     };
 
     WebviewWindowBuilder::new(app, wndid, url)
-        .title(wnd.title)
+        .title(wnd.title.clone())
         .inner_size(wnd.width, wnd.height)
         .center()
         .visible(false)
