@@ -41,6 +41,8 @@ pub(super) fn ensure_depsenv() -> Result<(),String>{
                     .unwrap_or_default();
             }
             crate::utils::ensure_python(ver, &py_dir)?;
+        } else {
+            return Err(format!("不支持的依赖环境：{dep}"));
         }
     }
     Ok(())
