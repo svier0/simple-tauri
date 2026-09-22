@@ -16,7 +16,6 @@ pub fn ensure_node(ver: &str,node_dir: &str) -> Result<(), String> {
 	let node_path = super::path_rel2abs(node_dir,crate::simple_tray::resource_dir(""));
     let node_dir = node_path.to_string_lossy().replace("\\","/");
 	let _ = NODE_DIR.set(node_dir.clone());
-
 	if node_path.join("node.exe").is_file()
 		|| node_path.join("node").is_file() {
 		return Ok(());

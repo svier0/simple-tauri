@@ -14,17 +14,19 @@ pub(super) fn ensure_depsenv() -> Result<(),String>{
     for dep in deps {
         if dep == "node" || dep.starts_with("node@") {
             let ver = dep.strip_prefix("node@").unwrap_or("");
-            #[cfg(windows)]
-            sh2rs!("sh where node").ok();
-            #[cfg(not(windows))]
-            sh2rs!("sh which node").ok();
-            let mut node_dir = get_stdout_buffer();
-            if !node_dir.is_empty() {
-                node_dir = std::path::Path::new(&node_dir).parent()
-                    .map(|p| p.to_string_lossy().replace("\\","/"))
-                    .unwrap_or_default();
-            }
-            crate::utils::ensure_node(ver, &node_dir)?;
+            // 检测系统已安装Node环境
+            // #[cfg(windows)]
+            // sh2rs!("sh where node").ok();
+            // #[cfg(not(windows))]
+            // sh2rs!("sh which node").ok();
+            // let mut node_dir = get_stdout_buffer();
+            // if !node_dir.is_empty() {
+            //     node_dir = std::path::Path::new(&node_dir).parent()
+            //         .map(|p| p.to_string_lossy().replace("\\","/"))
+            //         .unwrap_or_default();
+            // }
+            // crate::utils::ensure_node(ver, &node_dir)?;
+            crate::utils::ensure_node(ver, "")?;
         } else if dep == "pnpm" || dep.starts_with("pnpm@") {
             let ver = dep.strip_prefix("pnpm@").unwrap_or("");
             crate::utils::ensure_pnpm(ver)?;

@@ -275,6 +275,18 @@ pub fn run_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 ::simple_tauri::simple_serve::set_pkg(#pkg_type, #pkg_name);
             });
         }
+        // server.deps (set_depsenv)
+        if let Some(deps) = server.get("deps").and_then(|v| v.as_array()) {
+            let deps_strs: Vec<String> = deps.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect();
+            let deps_tokens: Vec<proc_macro2::TokenStream> = deps_strs.iter()
+                .map(|s| quote!(String::from(#s)))
+                .collect();
+            tokens.push(quote! {
+                ::simple_tauri::simple_serve::set_depsenv(&[#(#deps_tokens),*]);
+            });
+        }
     }
 
     // 10. run
