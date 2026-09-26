@@ -20,7 +20,7 @@ pub fn mutex_impl(input: TokenStream) -> TokenStream {
         },
         None => quote! {
             #[cfg(windows)]
-            if ::simple_tauri::check_mutex(::std::env!("CARGO_PKG_NAME")) {
+            if ::simple_tauri::check_mutex(&::simple_tauri::simple_tray::product_name()) {
                 return;
             }
         },

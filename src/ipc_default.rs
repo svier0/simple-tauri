@@ -7,6 +7,7 @@ use crate::simple_tray::app;
 // ------- ------- 本体版本与更新 ------- -------
 
 /// 获取本体版本号
+/// note：前端可使用app.getVersion() 因此此方法用不上
 #[tauri::command]
 pub fn ipc_version() -> serde_json::Value {
     let r = app().package_info().version.to_string();
