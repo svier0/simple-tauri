@@ -30,5 +30,17 @@ pub fn get_log_path() -> PathBuf {
 
 pub fn get_log() -> String {
     let path = get_log_path();
-    std::fs::read_to_string(&path).unwrap_or_default()
+    let bytes = match std::fs::read(&path) {
+        Ok(b) => b,
+        Err(_) => return String::new(),
+    };
+    match String::from_utf8(bytes) {
+        Ok(s) => s,
+        Err(e) => {
+            // cmd 等外部进程按系统代码页(中文Windows=GBK)输出, UTF-8 解码失败时按 GBK 兜底
+            let bytes = e.into_bytes();
+            let (s, _, _) = encoding_rs::GBK.decode(&bytes);
+            s.into_owned()
+        }
+    }
 }
