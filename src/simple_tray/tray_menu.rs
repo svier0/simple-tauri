@@ -74,7 +74,6 @@ pub(super) fn build_tray_menu() -> tauri::menu::Menu<tauri::Wry> {
     let _ = TOGGLE_ITEM.set(toggle.clone());
     let light = CheckMenuItem::with_id(app, "light", "轻量模式", true, false, None::<&str>).unwrap();
     let _ = LIGHT_ITEM.set(light.clone());
-    let quit = MenuItemBuilder::with_id("quit", "退出").build(app).unwrap();
 
     // 创建托盘菜单
     let mut menu = MenuBuilder::new(app);
@@ -89,9 +88,7 @@ pub(super) fn build_tray_menu() -> tauri::menu::Menu<tauri::Wry> {
             menu = menu.item(&MenuItemBuilder::with_id(id, label).build(app).unwrap());
         }
     }
-    let menu = menu.item(&PredefinedMenuItem::separator(app).unwrap())
-        .item(&quit)
-        .build().unwrap();
+    let menu = menu.build().unwrap();
 
     // 静默启动：默认开启轻量模式
     if crate::config::get_or!("silent_launch",false) {
