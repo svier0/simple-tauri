@@ -105,19 +105,32 @@ pub fn run_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     .unwrap_or_else(|e| panic!("run!: {module}.rs 解析失败: {e}"));
                 
                 for item in &file.items {
-                    if let syn::Item::Fn(f) = item {
-                        let is_cmd = f.attrs.iter().any(|a| {
-                            a.path()
-                                .segments
-                                .last()
-                                .map(|s| s.ident == "command")
-                                .unwrap_or(false)
-                        });
-                        if is_cmd {
-                            let module_ident = syn::Ident::new(module, proc_macro2::Span::call_site());
-                            let func_name = &f.sig.ident;
-                            all_paths.push(quote!(#module_ident::#func_name));
+                    match item {
+                        // #[tauri::command] fn xxx() {}
+                        syn::Item::Fn(f) => {
+                            let is_cmd = f.attrs.iter().any(|a| {
+                                a.path()
+                                    .segments
+                                    .last()
+                                    .map(|s| s.ident == "command")
+                                    .unwrap_or(false)
+                            });
+                            if is_cmd {
+                                let module_ident = syn::Ident::new(module, proc_macro2::Span::call_site());
+                                let func_name = &f.sig.ident;
+                                all_paths.push(quote!(#module_ident::#func_name));
+                            }
                         }
+                        // pub use path::{a, b, c};
+                        syn::Item::Use(u) => {
+                            if matches!(&u.vis, syn::Visibility::Public(_)) {
+                                if let syn::UseTree::Path(p) = &u.tree {
+                                    let prefix = syn::Path::from(p.ident.clone());
+                                    collect_use_paths(&p.tree, &prefix, &mut all_paths);
+                                }
+                            }
+                        }
+                        _ => {}
                     }
                 }
             }
@@ -298,4 +311,26 @@ pub fn run_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         #(#tokens)*
     };
     expanded.into()
+}
+
+/// 递归收集 pub use path::{a, b, c} 中的完整路径
+fn collect_use_paths(tree: &syn::UseTree, prefix: &syn::Path, paths: &mut Vec<proc_macro2::TokenStream>) {
+    match tree {
+        syn::UseTree::Path(p) => {
+            let mut new_prefix = prefix.clone();
+            new_prefix.segments.push(p.ident.clone().into());
+            collect_use_paths(&p.tree, &new_prefix, paths);
+        }
+        syn::UseTree::Name(n) => {
+            let mut full = prefix.clone();
+            full.segments.push(n.ident.clone().into());
+            paths.push(quote!(#full));
+        }
+        syn::UseTree::Group(g) => {
+            for item in &g.items {
+                collect_use_paths(item, prefix, paths);
+            }
+        }
+        _ => {}
+    }
 }
