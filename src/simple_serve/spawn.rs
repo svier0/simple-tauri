@@ -8,7 +8,8 @@ use std::fs::File;
 use windows_sys::Win32::Foundation::HANDLE;
 #[cfg(windows)]
 use windows_sys::Win32::System::JobObjects::{
-    AssignProcessToJobObject, CreateJobObjectW, SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+    AssignProcessToJobObject, CreateJobObjectW, SetInformationJobObject, TerminateJobObject,
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
     JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
 };
 #[cfg(windows)]
@@ -48,6 +49,19 @@ fn job_object() -> HANDLE {
     }
     let _ = JOB_HANDLE.set(handle as usize);
     handle
+}
+
+/// 终止 Job 内全部进程（child.kill 只杀 cmd 包装进程，服务进程必须靠 Job 整树杀）
+#[cfg(windows)]
+pub(crate) fn terminate_job() {
+    if let Some(handle) = JOB_HANDLE.get() {
+        let h = *handle as HANDLE;
+        if !h.is_null() {
+            unsafe {
+                let _ = TerminateJobObject(h, 1);
+            }
+        }
+    }
 }
 
 /// 隐藏新进程的 cmd 黑窗（CREATE_NO_WINDOW）

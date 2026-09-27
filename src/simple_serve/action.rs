@@ -46,4 +46,7 @@ pub fn stop() {
         let _ = child.kill();
         let _ = child.wait();
     }
+    // cmd /C 只杀包装进程会留下孤儿服务进程, 靠 Job Object 整树杀
+    #[cfg(windows)]
+    super::spawn::terminate_job();
 }
