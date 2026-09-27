@@ -1,6 +1,7 @@
 
 use super::status::{set_run_flag};
 use super::work_dir::{get_work_dir};
+use super::local_ver::{get_local_ver};
 use super::spawn::{spawn_in_dir};
 
 use std::process::{Child};
@@ -31,7 +32,7 @@ pub fn start() -> std::io::Result<()> {
     stop();
     set_run_flag(true);
 
-    let dir = get_work_dir(None);
+    let dir = get_work_dir(Some(&get_local_ver()));
     let proc = spawn_in_dir(std::path::Path::new(&dir), &get_start_cmd())?;
 
     *child().lock().unwrap() = Some(proc);
