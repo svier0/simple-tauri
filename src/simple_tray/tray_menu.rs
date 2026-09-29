@@ -51,13 +51,13 @@ pub(super) fn trigger_tray_menu_cb(id: &str) {
 /// 设置托盘菜单（编译期宏 set_tray_menu! 生成静态数组后调用此函数）
 pub fn set_tray_menu(menulist: &'static [(&'static str, &'static str, Option<fn()>)]) {
     let mut list: Vec<(&'static str, &'static str, Option<fn()>)> = Vec::new();
-    for &(id, label, _) in menulist {
+    for &(id, label, cb) in menulist {
         match id {
             "show" => list.push((id, label, Some(cb_show))),
             "toggle" => list.push((id, "启动", Some(cb_toggle))),
             "light" => list.push((id, "轻量模式", Some(cb_light))),
             "quit" => {},
-            _ => list.push((id, label, None)),
+            _ => list.push((id, label, cb)),
         }
     }
     list.push(("quit", "退出", Some(cb_quit)));
