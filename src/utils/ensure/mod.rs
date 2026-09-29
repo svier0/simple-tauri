@@ -162,7 +162,7 @@ pub fn show_env_cmd(cmd:&str) {
         let tmp = std::env::temp_dir().join("_simple_tauri_cmd.cmd");
         std::fs::write(&tmp, format!("{cmd}\r\npause")).ok();
         std::process::Command::new("cmd")
-            .args(["/C", "start", "cmd", "/K", tmp.to_string_lossy().as_ref()])
+            .args(["/K", tmp.to_string_lossy().as_ref()])
             .spawn().ok();
     }
     #[cfg(not(windows))]
